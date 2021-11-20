@@ -17,11 +17,12 @@ class Main : Application() {
 //        primaryStage?.scene = scene
 //        primaryStage?.show()
         val loader = FXMLLoader(javaClass.classLoader.getResource("main_window.fxml"))
-        primaryStage?.title = "Pacman"
+        primaryStage?.title = "KSnake"
         val view = loader.load<Parent>()
         val tmp = Scene(view)
 
         primaryStage?.scene = tmp
+        primaryStage?.isResizable = false
         primaryStage?.show()
 
     }
