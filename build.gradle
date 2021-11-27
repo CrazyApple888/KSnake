@@ -1,0 +1,10 @@
+
+
+group = 'ru.nsu.fit.isachenko'
+version = '1.0-SNAPSHOT'
+
+allprojects {
+    repositories {
+        mavenCentral()
+    }
+}
