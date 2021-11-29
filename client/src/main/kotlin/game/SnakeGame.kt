@@ -6,4 +6,6 @@ class SnakeGame(
     private val controller: BasicController
 ) : GameModel {
 
+
+
 }

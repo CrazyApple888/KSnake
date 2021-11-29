@@ -1,8 +1,8 @@
-
 rootProject.name = 'SnakeGame'
 
 
 include(':client')
 include(':server')
 include(':multicast-server')
+include 'utilities'
 

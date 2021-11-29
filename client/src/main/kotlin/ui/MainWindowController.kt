@@ -1,5 +1,6 @@
 package ru.nsu.fit.isachenko.snakegame.ui
 
+import MulticastObserver
 import javafx.fxml.FXML
 import javafx.scene.canvas.Canvas
 import javafx.scene.canvas.GraphicsContext
@@ -11,11 +12,11 @@ import javafx.scene.layout.VBox
 import javafx.scene.paint.Color
 import javafx.scene.shape.ArcType
 import javafx.scene.text.Text
-import ru.nsu.fit.isachenko.snakegame.ui.BasicController
+import ServerDTO
 import java.net.URL
 import java.util.*
 
-class MainWindowController : BasicController {
+class MainWindowController : BasicController, MulticastObserver {
     @FXML
     private var resources: ResourceBundle? = null
 
@@ -62,7 +63,7 @@ class MainWindowController : BasicController {
     private var newGameButton: Button? = null
 
     @FXML
-    private var avaibleGamesListview: ListView<*>? = null
+    private var avaibleGamesListview: ListView<String>? = null
     @FXML
     fun initialize() {
         assert(splitPane != null) { "fx:id=\"ui_splitpane\" was not injected: check your FXML file 'main_window.fxml'." }
@@ -82,6 +83,13 @@ class MainWindowController : BasicController {
 
         leaveButton?.setOnMouseClicked { drawShapes(gameCanvas?.graphicsContext2D!!) }
         newGameButton?.setOnMouseClicked { clearCanvas(gameCanvas?.graphicsContext2D!!) }
+
+        //gameCanvas?.width = 40.0 * 20
+        //gameCanvas?.height = 30.0 * 20
+
+        avaibleGamesListview?.setOnMouseClicked {
+            //todo handle clicks
+        }
     }
 
     private fun drawShapes(gc: GraphicsContext) {
@@ -110,6 +118,11 @@ class MainWindowController : BasicController {
 
     override fun repaint() {
         TODO("Not yet implemented")
+    }
+
+    override fun notify(newServer: ServerDTO) {
+        //todo serverDTo to string
+        avaibleGamesListview?.items?.add("$newServer")
     }
 
 }

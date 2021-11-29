@@ -1,22 +1,43 @@
 package ru.nsu.fit.isachenko.snakegame
 
+import Loggable
+import MulticastServer
 import javafx.application.Application
+import javafx.application.Platform
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.stage.Stage
+import ru.nsu.fit.isachenko.snakegame.game.GameConfiguration
+import ru.nsu.fit.isachenko.snakegame.ui.MainWindowController
+import java.lang.Exception
+import java.net.InetAddress
+import kotlin.jvm.Throws
 
-class Main : Application() {
+class Main : Application(), Loggable {
 
+    @Throws(Exception::class)
     override fun start(primaryStage: Stage?) {
         val loader = FXMLLoader(javaClass.classLoader.getResource("main_window.fxml"))
         primaryStage?.title = "KSnake"
         val view = loader.load<Parent>()
         val tmp = Scene(view)
 
+        val ms = MulticastServer(InetAddress.getByName("239.192.0.4"), 9192)
+
         primaryStage?.scene = tmp
         primaryStage?.isResizable = false
+        primaryStage?.setOnCloseRequest {
+            Platform.exit()
+        }
         primaryStage?.show()
+        logger.info("Application successfully started!")
+        GameConfiguration.configure()
+
+        val controller = loader.getController<MainWindowController>()
+
+        ms.subscribe(controller)
+        ms.run().start()
     }
 
     companion object {

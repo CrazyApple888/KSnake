@@ -8,8 +8,7 @@ version = '1.0-SNAPSHOT'
 dependencies {
     testImplementation 'org.jetbrains.kotlin:kotlin-test:1.6.0'
 
-    implementation 'com.google.protobuf:protobuf-kotlin:3.19.1'
-    implementation 'com.google.protobuf:protobuf-java:3.19.1'
+    implementation project(':utilities')
 }
 
 test {

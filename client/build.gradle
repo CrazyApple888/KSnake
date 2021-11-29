@@ -16,6 +16,10 @@ dependencies {
     testImplementation 'org.jetbrains.kotlin:kotlin-test:1.6.0'
 
     implementation 'org.openjfx:javafx:17.0.0.1'
+
+    implementation project(':multicast-server')
+    implementation project(":utilities")
+    implementation project(":server")
 }
 
 test {

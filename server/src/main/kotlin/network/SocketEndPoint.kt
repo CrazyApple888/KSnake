@@ -1,9 +1,10 @@
-package net
+package network
 
-import net.EndPoint
+import SnakesProto
 
 class SocketEndPoint : EndPoint {
     override fun write() {
+        val a = SnakesProto.GameMessage.ACK_FIELD_NUMBER
         TODO("Not yet implemented")
     }
 
