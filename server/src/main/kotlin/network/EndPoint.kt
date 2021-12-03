@@ -1,9 +1,11 @@
 package network
 
+import java.net.DatagramPacket
+
 interface EndPoint {
 
-    fun write()
+    fun send(data: DatagramPacket)
 
-    fun read()
+    fun receive() : DatagramPacket
 
 }

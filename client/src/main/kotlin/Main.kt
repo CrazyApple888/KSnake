@@ -2,13 +2,15 @@ package ru.nsu.fit.isachenko.snakegame
 
 import Loggable
 import MulticastServer
+import SnakesProto
 import javafx.application.Application
 import javafx.application.Platform
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.stage.Stage
-import ru.nsu.fit.isachenko.snakegame.game.GameConfiguration
+import game.GameConfiguration
+import ru.nsu.fit.isachenko.snakegame.ui.FXPainter
 import ru.nsu.fit.isachenko.snakegame.ui.MainWindowController
 import java.lang.Exception
 import java.net.InetAddress
@@ -23,7 +25,7 @@ class Main : Application(), Loggable {
         val view = loader.load<Parent>()
         val tmp = Scene(view)
 
-        val ms = MulticastServer(InetAddress.getByName("239.192.0.4"), 9192)
+        val multicastServer = MulticastServer(InetAddress.getByName("239.192.0.4"), 9192)
 
         primaryStage?.scene = tmp
         primaryStage?.isResizable = false
@@ -36,8 +38,16 @@ class Main : Application(), Loggable {
 
         val controller = loader.getController<MainWindowController>()
 
-        ms.subscribe(controller)
-        ms.run().start()
+        multicastServer.subscribe(controller)
+        multicastServer.run().start()
+
+        val fake = fakeState()
+        val painter = FXPainter(controller.gameCanvas!!, controller.ratingListview!!)
+
+        painter.countCanvasScale(fake.config.width, fake.config.height)
+
+        painter.repaint(fake)
+
     }
 
     companion object {
@@ -45,5 +55,75 @@ class Main : Application(), Loggable {
         fun main() {
             launch(Main::class.java)
         }
+    }
+
+    private fun fakeState(): SnakesProto.GameState {
+        return SnakesProto.GameState.newBuilder()
+            .addFoods(
+                SnakesProto.GameState.Coord.newBuilder()
+                    .setX(0)
+                    .setY(0)
+                    .build()
+            )
+            .addSnakes(
+                SnakesProto.GameState.Snake.newBuilder()
+                    .setState(SnakesProto.GameState.Snake.SnakeState.ALIVE)
+                    .setHeadDirection(SnakesProto.Direction.DOWN)
+                    .setPlayerId(1)
+                    .addPoints(
+                        SnakesProto.GameState.Coord.newBuilder()
+                            .setX(2)
+                            .setY(2)
+                            .build()
+                    )
+                    .addPoints(
+                        SnakesProto.GameState.Coord.newBuilder()
+                            .setX(3)
+                            .setY(2)
+                            .build()
+                    )
+                    .addPoints(
+                        SnakesProto.GameState.Coord.newBuilder()
+                            .setX(4)
+                            .setY(2)
+                            .build()
+                    )
+                    .build()
+            )
+            .addSnakes(
+                SnakesProto.GameState.Snake.newBuilder()
+                    .setState(SnakesProto.GameState.Snake.SnakeState.ALIVE)
+                    .setHeadDirection(SnakesProto.Direction.DOWN)
+                    .setPlayerId(2)
+                    .addPoints(
+                        SnakesProto.GameState.Coord.newBuilder()
+                            .setX(2)
+                            .setY(4)
+                            .build()
+                    )
+                    .addPoints(
+                        SnakesProto.GameState.Coord.newBuilder()
+                            .setX(3)
+                            .setY(4)
+                            .build()
+                    )
+                    .addPoints(
+                        SnakesProto.GameState.Coord.newBuilder()
+                            .setX(4)
+                            .setY(4)
+                            .build()
+                    )
+                    .build()
+            )
+            .setStateOrder(1)
+            .setPlayers(SnakesProto.GamePlayers.getDefaultInstance())
+            .setConfig(
+                SnakesProto.GameConfig
+                    .newBuilder()
+                    .setWidth(50)
+                    .setHeight(50)
+                    .build()
+            )
+            .build()
     }
 }

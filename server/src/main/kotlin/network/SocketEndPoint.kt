@@ -1,14 +1,27 @@
 package network
 
-import SnakesProto
+import java.net.DatagramPacket
+import java.net.DatagramSocket
 
-class SocketEndPoint : EndPoint {
-    override fun write() {
-        val a = SnakesProto.GameMessage.ACK_FIELD_NUMBER
-        TODO("Not yet implemented")
+class SocketEndPoint(
+    port: Int,
+    timeout: Int
+) : EndPoint {
+
+    private val socket = DatagramSocket(port)
+
+    init {
+        socket.soTimeout = timeout
     }
 
-    override fun read() {
-        TODO("Not yet implemented")
+    override fun send(data: DatagramPacket) {
+        socket.send(data)
+    }
+
+    override fun receive() : DatagramPacket {
+        val packet = DatagramPacket(ByteArray(DEFAULT_BUFFER_SIZE), DEFAULT_BUFFER_SIZE)
+        socket.receive(packet)
+
+        return packet
     }
 }

@@ -3,20 +3,17 @@ package ru.nsu.fit.isachenko.snakegame.ui
 import MulticastObserver
 import javafx.fxml.FXML
 import javafx.scene.canvas.Canvas
-import javafx.scene.canvas.GraphicsContext
 import javafx.scene.control.Button
 import javafx.scene.control.ListView
 import javafx.scene.control.SplitPane
 import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
-import javafx.scene.paint.Color
-import javafx.scene.shape.ArcType
 import javafx.scene.text.Text
 import ServerDTO
 import java.net.URL
 import java.util.*
 
-class MainWindowController : BasicController, MulticastObserver {
+class MainWindowController : MulticastObserver {
     @FXML
     private var resources: ResourceBundle? = null
 
@@ -27,7 +24,9 @@ class MainWindowController : BasicController, MulticastObserver {
     private var splitPane: SplitPane? = null
 
     @FXML
-    private var gameCanvas: Canvas? = null
+    var gameCanvas: Canvas? = null
+        private set
+
 
     @FXML
     private var infoVbox: VBox? = null
@@ -39,7 +38,8 @@ class MainWindowController : BasicController, MulticastObserver {
     private var ratingVbox: VBox? = null
 
     @FXML
-    private var ratingListview: ListView<*>? = null
+    var ratingListview: ListView<String>? = null
+        private set
 
     @FXML
     private var gameInfoVbox: VBox? = null
@@ -64,6 +64,10 @@ class MainWindowController : BasicController, MulticastObserver {
 
     @FXML
     private var avaibleGamesListview: ListView<String>? = null
+
+    private var xScale = 1.0
+    private var yScale = 1.0
+
     @FXML
     fun initialize() {
         assert(splitPane != null) { "fx:id=\"ui_splitpane\" was not injected: check your FXML file 'main_window.fxml'." }
@@ -81,48 +85,12 @@ class MainWindowController : BasicController, MulticastObserver {
         assert(newGameButton != null) { "fx:id=\"new_game_button\" was not injected: check your FXML file 'main_window.fxml'." }
         assert(avaibleGamesListview != null) { "fx:id=\"avaible_games_listview\" was not injected: check your FXML file 'main_window.fxml'." }
 
-        leaveButton?.setOnMouseClicked { drawShapes(gameCanvas?.graphicsContext2D!!) }
-        newGameButton?.setOnMouseClicked { clearCanvas(gameCanvas?.graphicsContext2D!!) }
-
-        //gameCanvas?.width = 40.0 * 20
-        //gameCanvas?.height = 30.0 * 20
-
         avaibleGamesListview?.setOnMouseClicked {
             //todo handle clicks
         }
     }
 
-    private fun drawShapes(gc: GraphicsContext) {
-        gc.fill = Color.GREEN
-        gc.stroke = Color.BLUE
-        gc.lineWidth = 5.0
-        gc.strokeLine(40.0, 10.0, 10.0, 40.0)
-        gc.fillOval(10.0, 60.0, 30.0, 30.0)
-        gc.strokeOval(60.0, 60.0, 30.0, 30.0)
-        gc.fillRoundRect(110.0, 60.0, 30.0, 30.0, 10.0, 10.0)
-        gc.strokeRoundRect(160.0, 60.0, 30.0, 30.0, 10.0, 10.0)
-        gc.fillArc(10.0, 110.0, 30.0, 30.0, 45.0, 240.0, ArcType.OPEN)
-        gc.fillArc(60.0, 110.0, 30.0, 30.0, 45.0, 240.0, ArcType.CHORD)
-        gc.fillArc(110.0, 110.0, 30.0, 30.0, 45.0, 240.0, ArcType.ROUND)
-        gc.strokeArc(10.0, 160.0, 30.0, 30.0, 45.0, 240.0, ArcType.OPEN)
-        gc.strokeArc(60.0, 160.0, 30.0, 30.0, 45.0, 240.0, ArcType.CHORD)
-        gc.strokeArc(110.0, 160.0, 30.0, 30.0, 45.0, 240.0, ArcType.ROUND)
-        gc.fillPolygon(doubleArrayOf(10.0, 40.0, 10.0, 40.0), doubleArrayOf(210.0, 210.0, 240.0, 240.0), 4)
-        gc.strokePolygon(doubleArrayOf(60.0, 90.0, 60.0, 90.0), doubleArrayOf(210.0, 210.0, 240.0, 240.0), 4)
-        gc.strokePolyline(doubleArrayOf(110.0, 140.0, 110.0, 140.0), doubleArrayOf(210.0, 210.0, 240.0, 240.0), 4)
-    }
-
-    private fun clearCanvas(gc: GraphicsContext) {
-        gc.clearRect(0.0, 0.0, gameCanvas?.width!!, gameCanvas?.height!!)
-    }
-
-    override fun repaint() {
-        TODO("Not yet implemented")
-    }
-
     override fun notify(newServer: ServerDTO) {
-        //todo serverDTo to string
         avaibleGamesListview?.items?.add("$newServer")
     }
-
 }

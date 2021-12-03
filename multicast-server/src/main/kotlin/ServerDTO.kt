@@ -4,7 +4,7 @@ data class ServerDTO(
 ) {
 
     override fun toString(): String {
-        return "$address ${gameInfo.config.width}x${gameInfo.config.height} ${gameInfo.config.foodStatic}+${gameInfo.config.foodPerPlayer}x"
+        return "$address \t\t\t${gameInfo.config.width}x${gameInfo.config.height} \t\t\t${gameInfo.config.foodStatic}+${gameInfo.config.foodPerPlayer}x"
     }
 
 }

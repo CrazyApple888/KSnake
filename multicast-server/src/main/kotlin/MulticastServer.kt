@@ -1,11 +1,16 @@
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import java.lang.Exception
 import java.net.DatagramPacket
 
 import java.net.InetAddress
 import java.net.MulticastSocket
+import java.util.*
 
 private typealias AnnouncementMessage = SnakesProto.GameMessage.AnnouncementMsg
 
@@ -16,7 +21,19 @@ class MulticastServer(
 
     private val subscribers = mutableListOf<MulticastObserver>()
     private val multicastSocket = MulticastSocket(port)
-    private val servers = mutableMapOf<String, AnnouncementMessage>()
+    private val servers = mutableMapOf<DatagramPacket, AnnouncementMessage>()
+
+    fun getPortByHostName(hostName: String): Optional<Int> =
+        servers.keys.stream()
+            .filter { it.address.hostName == hostName }
+            .map { it.port }
+            .findFirst()
+
+    fun getAddressByHostName(hostName: String): Optional<InetAddress> =
+        servers.keys.stream()
+            .filter { it.address.hostName == hostName }
+            .map { it.address }
+            .findFirst()
 
     fun run() = CoroutineScope(Dispatchers.IO).launch {
         multicastSocket.joinGroup(address)
@@ -24,6 +41,9 @@ class MulticastServer(
         val message = DatagramPacket(buffer, DEFAULT_BUFFER_SIZE)
         while (true) {
             //todo delete AFK servers
+//            subscribers.forEach { it.notify(ServerDTO("ABOBA", SnakesProto.GameMessage.AnnouncementMsg.getDefaultInstance())) }
+//            subscribers.forEach { it.notify(ServerDTO("NOT ABOBA", SnakesProto.GameMessage.AnnouncementMsg.getDefaultInstance())) }
+//            subscribers.forEach { it.notify(ServerDTO("ABOBICH", SnakesProto.GameMessage.AnnouncementMsg.getDefaultInstance())) }
             multicastSocket.receive(message)
             processMessage(message)
         }
@@ -35,7 +55,7 @@ class MulticastServer(
             logger.warning("Multicast got message without announcement")
             return
         }
-        if (null == servers.putIfAbsent(message.address.hostName, gameMessage.announcement)) {
+        if (null == servers.putIfAbsent(message, gameMessage.announcement)) {
             logger.info("Multicast spotted new server with hostName ${message.address.hostName}")
             subscribers.forEach { it.notify(ServerDTO(message.address.hostName, gameMessage.announcement)) }
         }
