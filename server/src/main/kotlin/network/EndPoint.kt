@@ -8,4 +8,8 @@ interface EndPoint {
 
     fun receive() : DatagramPacket
 
+    fun close()
+
+    fun reconfigureEndPont(port: Int)
+
 }

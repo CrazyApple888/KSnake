@@ -10,9 +10,14 @@ import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.stage.Stage
 import game.GameConfiguration
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import network.SocketEndPoint
 import ru.nsu.fit.isachenko.snakegame.ui.FXPainter
 import ru.nsu.fit.isachenko.snakegame.ui.MainWindowController
 import java.lang.Exception
+import java.net.DatagramPacket
 import java.net.InetAddress
 import kotlin.jvm.Throws
 
@@ -47,6 +52,17 @@ class Main : Application(), Loggable {
         painter.countCanvasScale(fake.config.width, fake.config.height)
 
         painter.repaint(fake)
+
+        val socket = SocketEndPoint(8080, 1000)
+
+        val message = "Hello".toByteArray()
+        val datagramPacket = DatagramPacket(message, message.size, InetAddress.getByName("localhost"), 8080)
+
+        socket.send(datagramPacket)
+        CoroutineScope(Dispatchers.IO).launch {
+            val msg = socket.receive()
+            println(String(msg.data) + " ${msg.port}")
+        }
 
     }
 
