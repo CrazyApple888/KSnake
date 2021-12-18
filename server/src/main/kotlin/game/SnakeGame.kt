@@ -1,20 +1,23 @@
 package game
 
+import Coordinate
+import Direction
+import Snake
 import SnakesProto
-import generateCoordMsg
 import euclidToRing
+import generateProtoSnake
 import generateSnakeWithRandomDirection
+import toCoordinate
+import kotlin.random.Random
 
 
 class SnakeGame(
     private val config: SnakesProto.GameConfig
 ) : GameModel {
-
-    val players = mutableListOf<SnakesProto.GamePlayer>()
-
-    private val aliveSnakes = mutableListOf<SnakesProto.GameState.Snake>()
-    private val deadSnakes = mutableListOf<SnakesProto.GameState.Snake>()
-    private val food = mutableListOf<SnakesProto.GameState.Coord>()
+    private val players = mutableMapOf<Int, SnakesProto.GamePlayer>()
+    private val aliveSnakes = mutableMapOf<Int, Snake>()
+    private val deadSnakes = mutableMapOf<Int, Snake>()
+    private val food = mutableMapOf<Coordinate, Boolean>()
     private var lastId = 0
     private var stateOrder = 0
 
@@ -22,19 +25,19 @@ class SnakeGame(
         stateOrder = initialState.stateOrder
         initialState.snakesList.forEach { snake ->
             if (snake.state == SnakesProto.GameState.Snake.SnakeState.ALIVE) {
-                aliveSnakes += snake
+                aliveSnakes += snake.playerId to Snake(snake, config.width, config.height)
             } else {
-                deadSnakes += snake
+                deadSnakes += snake.playerId to Snake(snake, config.width, config.height)
             }
         }
-        food += initialState.foodsList
-        players += initialState.players.playersList
+        food += initialState.foodsList.associate { it.toCoordinate() to false }
+        players += initialState.players.playersList.associateBy { player -> player.id }
     }
 
     override fun tryAddSnake(): Int? {
         var topLeftCoord = 0 to 0
         while (topLeftCoord != (config.width to config.height)) {
-            val coord = generateCoordMsg(topLeftCoord.first, topLeftCoord.second)
+            val coord = Coordinate(topLeftCoord.first, topLeftCoord.second)
             val isPlaceFree = isPlaceFree(coord)
             if (isPlaceFree) {
                 if (isAreaFree(coord)) {
@@ -44,7 +47,7 @@ class SnakeGame(
                         euclidToRing(coord.y, config.height),
                         config
                     )
-                    aliveSnakes.add(snake)
+                    aliveSnakes[lastId] = Snake(snake, config.width, config.height)
                     return snake.playerId
                 } else {
                     topLeftCoord = topLeftCoord.first + 1 to topLeftCoord.second + 1
@@ -55,11 +58,11 @@ class SnakeGame(
         return null
     }
 
-    private fun isAreaFree(coord: SnakesProto.GameState.Coord): Boolean {
+    private fun isAreaFree(coord: Coordinate): Boolean {
         for (x in coord.x..coord.x + 4) {
             for (y in coord.y..coord.y + 4) {
                 val actualCoord = euclidToRing(x, config.width) to euclidToRing(y, config.height)
-                if (!isPlaceFree(generateCoordMsg(actualCoord.first, actualCoord.second))) {
+                if (!isPlaceFree(Coordinate(actualCoord.first, actualCoord.second))) {
                     return false
                 }
             }
@@ -68,83 +71,99 @@ class SnakeGame(
         return true
     }
 
-    private fun isPlaceFree(coord: SnakesProto.GameState.Coord): Boolean {
+    private fun isPlaceFree(coord: Coordinate): Boolean {
         val allSnakes = aliveSnakes + deadSnakes
-        return (null == allSnakes.find { snake -> snake.pointsList.contains(coord) }) && !food.contains(coord)
+        return (null == allSnakes.values.find { snake -> snake.contains(coord) }) && !food.contains(coord)
+    }
+
+    private fun addFood() {
+        var foodRemaining = config.foodStatic + config.foodPerPlayer.toInt() * aliveSnakes.size - food.size
+        if (foodRemaining == 0) {
+            return
+        }
+        for (x in 0..config.width) {
+            for (y in 0..config.height) {
+                val foodCoordinate = Coordinate(x, y)
+                if (isPlaceFree(foodCoordinate)) {
+                    food[foodCoordinate] = false
+                    if (foodRemaining-- == 0) {
+                        return
+                    }
+                }
+            }
+        }
     }
 
     private fun doGameMove() {
-        aliveSnakes.replaceAll { moveSnake(it) }
+        //moving snakes
+        aliveSnakes.forEach {
+            val player = players[it.key]
+            val isAte = it.value.move(food)
+            if (isAte) {
+                players[it.key] =
+                    SnakesProto.GamePlayer.newBuilder(players[it.key]).setScore(player!!.score + 1).build()
+            }
+        }
+        deadSnakes.forEach { it.value.move(food) }
+
+        //removing eaten food
+        food.entries.removeIf { it.value }
+
+        //checking collisions
+        val dead = aliveSnakes.filter { isCollision(it.value.body[0]) }
+        dead.forEach { deadSnake ->
+            aliveSnakes.remove(deadSnake.key)
+            //creating food from dead snake
+            if (Random(System.currentTimeMillis()).nextDouble(0.0, 1.0) > config.deadFoodProb) {
+                deadSnake.value.body.forEach {
+                    food[it] = false
+                }
+            }
+        }
+
+        addFood()
+    }
+
+    private fun isCollision(point: Coordinate): Boolean {
+        var collisionSnake = runCatching {
+            aliveSnakes.entries.first { it.value.body.contains(point) }
+        }
+        if (collisionSnake.isSuccess) {
+            return true
+        }
+        collisionSnake = runCatching {
+            deadSnakes.entries.first { it.value.body.contains(point) }
+        }
+
+        return collisionSnake.isSuccess
     }
 
     override fun generateNextState(): SnakesProto.GameState {
+        //todo
         doGameMove()
         stateOrder++
+
+
         return SnakesProto.GameState.newBuilder()
             .setStateOrder(stateOrder)
-            .addAllSnakes(aliveSnakes + deadSnakes)
-            .addAllFoods(food)
+            .addAllSnakes(aliveSnakes.map { generateProtoSnake(it.value, it.key, true) } + deadSnakes.map {
+                generateProtoSnake(
+                    it.value,
+                    it.key,
+                    false
+                )
+            })
+            .addAllFoods(food.keys.map { it.toCoord() })
             .setPlayers(
                 SnakesProto.GamePlayers.newBuilder()
-                    .addAllPlayers(players)
+                    .addAllPlayers(players.values)
                     .build()
             )
             .setConfig(config)
             .build()
     }
 
-    override fun changeSnakeDirection(playerId: Int, direction: SnakesProto.Direction) {
-        aliveSnakes.find { it.playerId == playerId }
-            ?.also {
-                it.toBuilder()
-                    .setHeadDirection(direction)
-                    .build()
-            }
+    override fun changeSnakeDirection(playerId: Int, direction: Direction) {
+        aliveSnakes[playerId]?.changeDirection(direction)
     }
-
-    private fun moveSnake(snake: SnakesProto.GameState.Snake): SnakesProto.GameState.Snake =
-        when (snake.headDirection) {
-            SnakesProto.Direction.UP -> {
-                val points = snake.pointsList.map {
-                    val y = euclidToRing(it.y - 1, config.height)
-                    generateCoordMsg(it.x, y)
-                }
-                snake.toBuilder()
-                    .clearPoints()
-                    .addAllPoints(points)
-                    .build()
-            }
-            SnakesProto.Direction.DOWN -> {
-                val points = snake.pointsList.map {
-                    val y = euclidToRing(it.y + 1, config.height)
-                    generateCoordMsg(it.x, y)
-                }
-                snake.toBuilder()
-                    .clearPoints()
-                    .addAllPoints(points)
-                    .build()
-            }
-            SnakesProto.Direction.LEFT -> {
-                val points = snake.pointsList.map {
-                    val x = euclidToRing(it.x - 1, config.width)
-                    generateCoordMsg(x, it.y)
-                }
-                snake.toBuilder()
-                    .clearPoints()
-                    .addAllPoints(points)
-                    .build()
-            }
-            SnakesProto.Direction.RIGHT -> {
-                val points = snake.pointsList.map {
-                    val x = euclidToRing(it.x + 1, config.width)
-                    generateCoordMsg(x, it.y)
-                }
-                snake.toBuilder()
-                    .clearPoints()
-                    .addAllPoints(points)
-                    .build()
-            }
-            else -> throw IllegalArgumentException("SnakesProto.Direction is null")
-        }
-
 }

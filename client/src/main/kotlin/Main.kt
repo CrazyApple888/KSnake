@@ -70,12 +70,14 @@ class Main : Application(), Loggable {
             println(String(msg.data) + " ${msg.port}")
         }
 
-        val a = generateCoordMsg(10, 11)
-        val b = generateCoordMsg(12, 13)
-        val c = generateCoordMsg(10, 11)
+        val a = generateCoordMsg(10, 11) to 1
+        val b = generateCoordMsg(12, 13) to 2
+        val c = generateCoordMsg(14, 11) to 3
 
-        val list = listOf(a,b)
-        println(list.contains(c))
+        val map = mutableMapOf(a, b, c)
+        println(map)
+        map.entries.removeIf{ it.value == 2 }
+        println(map)
 
     }
 

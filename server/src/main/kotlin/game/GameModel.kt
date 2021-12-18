@@ -1,5 +1,6 @@
 package game
 
+import Direction
 import SnakesProto
 
 interface GameModel {
@@ -8,6 +9,6 @@ interface GameModel {
 
     fun generateNextState() : SnakesProto.GameState
 
-    fun changeSnakeDirection(playerId: Int, direction: SnakesProto.Direction)
+    fun changeSnakeDirection(playerId: Int, direction: Direction)
 
 }

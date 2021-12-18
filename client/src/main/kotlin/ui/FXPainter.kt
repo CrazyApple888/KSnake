@@ -77,6 +77,7 @@ class FXPainter(
     }
 
     private fun paintSnake(snake: SnakesProto.GameState.Snake, graphicsContext: GraphicsContext) {
+        //todo rewrite for moves
         graphicsContext.fill = generateColorByNumber(snake.playerId)
         snake.pointsList.forEach {
             graphicsContext.fillRect(it.x * xScale, it.y * yScale, xScale, yScale)

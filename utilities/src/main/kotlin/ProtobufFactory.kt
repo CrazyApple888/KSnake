@@ -1,3 +1,5 @@
+import java.lang.IllegalStateException
+
 fun generateJoinMsg(name: String): SnakesProto.GameMessage =
     SnakesProto.GameMessage.newBuilder()
         .setJoin(
@@ -63,4 +65,49 @@ fun generateSnakeWithRandomDirection(
         .addPoints(tail)
         .setHeadDirection(direction)
         .build()
+}
+
+fun generateProtoSnake(snake: Snake, playerId: Int, isAlive: Boolean): SnakesProto.GameState.Snake {
+    val body = snake.body
+    var prev = body[0]
+    val protoBody = mutableListOf<SnakesProto.GameState.Coord>()
+    protoBody += generateCoordMsg(prev.x, prev.y)
+    body.stream()
+        .skip(1)
+        .forEach { current ->
+            protoBody += countMove(prev, current)
+            prev = current
+        }
+    val state =
+        if (isAlive) SnakesProto.GameState.Snake.SnakeState.ALIVE else SnakesProto.GameState.Snake.SnakeState.ZOMBIE
+    return SnakesProto.GameState.Snake.newBuilder()
+        .setPlayerId(playerId)
+        .addAllPoints(protoBody)
+        .setState(state)
+        .setHeadDirection(generateProtoDirection(snake.direction))
+        .build()
+}
+
+fun generateProtoDirection(direction: Direction): SnakesProto.Direction =
+    when (direction) {
+        Direction.UP -> SnakesProto.Direction.UP
+        Direction.DOWN -> SnakesProto.Direction.DOWN
+        Direction.LEFT -> SnakesProto.Direction.LEFT
+        Direction.RIGHT -> SnakesProto.Direction.RIGHT
+    }
+
+private fun countMove(prev: Coordinate, current: Coordinate): SnakesProto.GameState.Coord {
+    val dx = current.x - prev.x
+    val dy = current.y - prev.y
+    return if (dx < 0) {
+        generateCoordMsg(1, 0)
+    } else if (dx > 0) {
+        generateCoordMsg(-1, 0)
+    } else if (dy < 0) {
+        generateCoordMsg(0, 1)
+    } else if (dy > 0) {
+        generateCoordMsg(0, -1)
+    } else {
+        throw IllegalStateException("Prev and current point similar")
+    }
 }
