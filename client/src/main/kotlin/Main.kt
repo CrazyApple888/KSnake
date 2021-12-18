@@ -10,6 +10,7 @@ import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.stage.Stage
 import game.GameConfiguration
+import generateCoordMsg
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -44,7 +45,7 @@ class Main : Application(), Loggable {
         val controller = loader.getController<MainWindowController>()
 
         multicastServer.subscribe(controller)
-        multicastServer.run().start()
+        multicastServer.run()
 
         val fake = fakeState()
         val painter = FXPainter(controller.gameCanvas!!, controller.ratingListview!!)
@@ -53,16 +54,28 @@ class Main : Application(), Loggable {
 
         painter.repaint(fake)
 
-        val socket = SocketEndPoint(8080, 1000)
+        foo()
+    }
+
+    private fun foo() {
+        val server = SocketEndPoint(8080, 1000)
+        val client = SocketEndPoint(8090, 1000)
 
         val message = "Hello".toByteArray()
         val datagramPacket = DatagramPacket(message, message.size, InetAddress.getByName("localhost"), 8080)
 
-        socket.send(datagramPacket)
+        client.send(datagramPacket)
         CoroutineScope(Dispatchers.IO).launch {
-            val msg = socket.receive()
+            val msg = server.receive()
             println(String(msg.data) + " ${msg.port}")
         }
+
+        val a = generateCoordMsg(10, 11)
+        val b = generateCoordMsg(12, 13)
+        val c = generateCoordMsg(10, 11)
+
+        val list = listOf(a,b)
+        println(list.contains(c))
 
     }
 

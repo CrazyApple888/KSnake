@@ -1,5 +1,6 @@
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
@@ -23,27 +24,36 @@ class MulticastServer(
     private val multicastSocket = MulticastSocket(port)
     private val servers = mutableMapOf<DatagramPacket, AnnouncementMessage>()
 
-    fun getPortByHostName(hostName: String): Optional<Int> =
+    private var listenJob: Job? = null
+
+    fun getPortByHostAddress(hostAddress: String): Optional<Int> =
         servers.keys.stream()
-            .filter { it.address.hostName == hostName }
+            .filter { it.address.hostAddress == hostAddress }
             .map { it.port }
             .findFirst()
 
-    fun getAddressByHostName(hostName: String): Optional<InetAddress> =
+    fun getAddressByHostAddress(hostAddress: String): Optional<InetAddress> =
         servers.keys.stream()
-            .filter { it.address.hostName == hostName }
+            .filter { it.address.hostAddress == hostAddress }
             .map { it.address }
             .findFirst()
 
-    fun run() = CoroutineScope(Dispatchers.IO).launch {
+    fun run() {
+        listenJob = CoroutineScope(Dispatchers.IO).launch {
+            listen()
+        }
+    }
+
+    fun stop() {
+        listenJob?.cancel()
+    }
+
+    private fun listen() {
         multicastSocket.joinGroup(address)
         val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
         val message = DatagramPacket(buffer, DEFAULT_BUFFER_SIZE)
         while (true) {
             //todo delete AFK servers
-//            subscribers.forEach { it.notify(ServerDTO("ABOBA", SnakesProto.GameMessage.AnnouncementMsg.getDefaultInstance())) }
-//            subscribers.forEach { it.notify(ServerDTO("NOT ABOBA", SnakesProto.GameMessage.AnnouncementMsg.getDefaultInstance())) }
-//            subscribers.forEach { it.notify(ServerDTO("ABOBICH", SnakesProto.GameMessage.AnnouncementMsg.getDefaultInstance())) }
             multicastSocket.receive(message)
             processMessage(message)
         }
@@ -56,8 +66,8 @@ class MulticastServer(
             return
         }
         if (null == servers.putIfAbsent(message, gameMessage.announcement)) {
-            logger.info("Multicast spotted new server with hostName ${message.address.hostName}")
-            subscribers.forEach { it.notify(ServerDTO(message.address.hostName, gameMessage.announcement)) }
+            logger.info("Multicast spotted new server with hostAddress ${message.address.hostAddress}")
+            subscribers.forEach { it.notify(ServerDTO(message.address.hostAddress, gameMessage.announcement)) }
         }
     }
 

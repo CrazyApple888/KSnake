@@ -29,9 +29,4 @@ class SocketEndPoint(
     override fun close() {
         socket.close()
     }
-
-    override fun reconfigureEndPont(port: Int) {
-        socket.close()
-        socket = DatagramSocket(port)
-    }
 }

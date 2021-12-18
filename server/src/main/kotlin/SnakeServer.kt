@@ -1,18 +1,14 @@
 import com.google.protobuf.InvalidProtocolBufferException
 import game.GameConfiguration
 import game.GameModel
-import game.IdGenerator
 import kotlinx.coroutines.*
 import network.EndPoint
 import java.net.DatagramPacket
 import java.net.InetAddress
-import java.util.concurrent.ArrayBlockingQueue
-import java.util.concurrent.BlockingQueue
 
 class SnakeServer(
     private val endPoint: EndPoint,
     private val stateDelayMs: Long,
-    private val idGenerator: IdGenerator,
     private val gameModel: GameModel
 ) : Loggable {
     private val serverSocketJob = CoroutineScope(Dispatchers.IO).launch {
@@ -70,7 +66,7 @@ class SnakeServer(
     }
 
     private fun processNewPlayer() {
-        if (gameModel.hasPlace()) {
+        if (gameModel.tryAddSnake() != null) {
             //todo send ack with id
         } else {
             //todo send error msg
@@ -103,6 +99,7 @@ class SnakeServer(
         }
     }
 
+    //todo extract to ProtoFactory
     private fun generateAnnouncementMsg() =
         SnakesProto.GameMessage.newBuilder()
             .announcementBuilder

@@ -2,6 +2,7 @@ package ru.nsu.fit.isachenko.snakegame.network
 
 import Loggable
 import SnakesProto
+import generateAckMsg
 import generateJoinMsg
 import generatePingMsg
 import kotlinx.coroutines.*
@@ -16,13 +17,15 @@ class ClientNetworkController(
     private val config: SnakesProto.GameConfig,
     private val painter: Painter,
     private val endPoint: EndPoint,
-    private val address: InetAddress,
-    private val port: Int
+    private var serverAddress: InetAddress,
+    private var serverPort: Int
 ) : Loggable {
 
     private var isAlive = true
-    private var id = 0
+    private var myId = 0
     private var isDeputy = false
+
+    private var deputy: SnakesProto.GamePlayer? = null
 
     var lastState: SnakesProto.GameState = SnakesProto.GameState.getDefaultInstance()
         private set
@@ -30,7 +33,7 @@ class ClientNetworkController(
     private var lastMessageTime: Long = System.currentTimeMillis()
 
     private val messageQueue = ArrayBlockingQueue<SnakesProto.GameMessage>(100)
-    private val messagesToSend = mutableMapOf<SnakesProto.GameMessage, Long>()
+    private val notAckedMessages = mutableMapOf<SnakesProto.GameMessage, Long>()
 
     val lastSeq = AtomicLong(0)
 
@@ -40,7 +43,7 @@ class ClientNetworkController(
         try {
             messageQueue.add(message)
         } catch (exc: Throwable) {
-            logger.warning("Can't ass message to queue due to ${exc.message}")
+            logger.warning("Can't add message to queue due to ${exc.message}")
         }
     }
 
@@ -50,19 +53,19 @@ class ClientNetworkController(
      **/
     fun connect(): Boolean {
         val joinMsg = generateJoinMsg("Player_numba_van").toByteArray()
-        val datagram = DatagramPacket(joinMsg, joinMsg.size, address, port)
+        val datagram = DatagramPacket(joinMsg, joinMsg.size, serverAddress, serverPort)
 
         endPoint.send(datagram)
         try {
             val msg = endPoint.receive()
             val protoAnswer = SnakesProto.GameMessage.parseFrom(msg.data)
             if (protoAnswer.hasAck() && protoAnswer.hasReceiverId()) {
-                id = protoAnswer.receiverId
+                myId = protoAnswer.receiverId
                 pingRoutine = CoroutineScope(Dispatchers.IO).launch { pingRoutine() }
                 return true
             }
         } catch (exc: Throwable) {
-            logger.warning("Connection to server ${address.hostName} unsuccessful")
+            logger.warning("Connection to server ${serverAddress.hostAddress} unsuccessful")
         }
 
         return false
@@ -99,7 +102,12 @@ class ClientNetworkController(
                 //server time out expired
                 //todo:
                 // if !deputy --> change endPoint to deputy
-                // else start server
+                if (!isDeputy && deputy != null) {
+                    serverAddress = InetAddress.getByName(deputy!!.ipAddress)
+                    serverPort = deputy!!.port
+                } else {
+                //todo else start server
+                }
             }
         }
     }
@@ -112,7 +120,7 @@ class ClientNetworkController(
             if (time - lastMessageTime >= config.pingDelayMs) {
                 lastMessageTime = time
                 val msg = generatePingMsg(lastSeq.incrementAndGet())
-                messagesToSend[msg] = time
+                notAckedMessages[msg] = time
                 sendOneMessage(msg)
             }
         }
@@ -124,24 +132,38 @@ class ClientNetworkController(
         }
         else if (message.hasState()) {
             lastState = message.state.state
+            if (deputy == null) {
+                findDeputy(message)
+            }
             painter.repaint(message.state.state)
         }
         else if (message.hasRoleChange()) {
-            if (message.roleChange.receiverRole == SnakesProto.NodeRole.DEPUTY) {
+            if (message.roleChange.receiverRole == SnakesProto.NodeRole.DEPUTY && message.receiverId == myId) {
+                val ackMessage = generateAckMsg(lastSeq.incrementAndGet(), message.senderId, myId)
+                addMessageToQueue(ackMessage)
                 isDeputy = true
             }
         }
         else if (message.hasSteer() && isDeputy) {
-            //сервер отвалился, стартуем сервер от себя. депутатом назначаем чела, который прислал steer
+            //сервер отвалился, стартуем сервер от себя. депутатом назначаем чела, который прислал steer,
             //заменяем енд поинт на созданный сервер
             TODO()
         }
     }
 
+    private fun findDeputy(message: SnakesProto.GameMessage) {
+        for (player in message.state.state.players.playersList) {
+            if (player?.role == SnakesProto.NodeRole.DEPUTY) {
+                deputy = player
+                break
+            }
+        }
+    }
+
     private fun confirmMessages(seq: Long) {
         //Maybe <= ?
-        messagesToSend.filter { it.key.msgSeq == seq }
-            .forEach { messagesToSend.remove(it.key) }
+        notAckedMessages.filter { it.key.msgSeq == seq }
+            .forEach { notAckedMessages.remove(it.key) }
     }
 
     private fun receiveMessage(): SnakesProto.GameMessage {
@@ -156,14 +178,14 @@ class ClientNetworkController(
         tmpCollection.forEach { msg ->
             sendOneMessage(msg)
             time = System.currentTimeMillis()
-            messagesToSend[msg] = time
+            notAckedMessages[msg] = time
             lastMessageTime = time
         }
     }
 
     private fun sendOneMessage(message: SnakesProto.GameMessage) {
         val bytesMsg = message.toByteArray()
-        val packet = DatagramPacket(bytesMsg, bytesMsg.size, address, port)
+        val packet = DatagramPacket(bytesMsg, bytesMsg.size, serverAddress, serverPort)
         endPoint.send(packet)
     }
 

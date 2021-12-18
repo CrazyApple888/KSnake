@@ -10,6 +10,4 @@ interface EndPoint {
 
     fun close()
 
-    fun reconfigureEndPont(port: Int)
-
 }
