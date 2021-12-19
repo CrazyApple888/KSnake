@@ -10,6 +10,9 @@ class SocketEndPoint(
 ) : EndPoint {
 
     private var socket = DatagramSocket(port)
+    override val port
+        get() = socket.port
+    override val address: InetAddress get() = socket.localAddress
 
     init {
         socket.soTimeout = timeout
@@ -19,7 +22,7 @@ class SocketEndPoint(
         socket.send(data)
     }
 
-    override fun receive() : DatagramPacket {
+    override fun receive(): DatagramPacket {
         val packet = DatagramPacket(ByteArray(DEFAULT_BUFFER_SIZE), DEFAULT_BUFFER_SIZE)
         socket.receive(packet)
 

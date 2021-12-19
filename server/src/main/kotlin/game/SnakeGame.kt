@@ -14,7 +14,8 @@ import kotlin.random.Random
 class SnakeGame(
     private val config: SnakesProto.GameConfig
 ) : GameModel {
-    private val players = mutableMapOf<Int, SnakesProto.GamePlayer>()
+
+    override val players = mutableMapOf<Int, SnakesProto.GamePlayer>()
     private val aliveSnakes = mutableMapOf<Int, Snake>()
     private val deadSnakes = mutableMapOf<Int, Snake>()
     private val food = mutableMapOf<Coordinate, Boolean>()
@@ -42,17 +43,16 @@ class SnakeGame(
             if (isPlaceFree) {
                 if (isAreaFree(coord)) {
                     val snake = generateSnakeWithRandomDirection(
-                        lastId++,
+                        ++lastId,
                         euclidToRing(coord.x, config.width),
                         euclidToRing(coord.y, config.height),
                         config
                     )
                     aliveSnakes[lastId] = Snake(snake, config.width, config.height)
                     return snake.playerId
-                } else {
-                    topLeftCoord = topLeftCoord.first + 1 to topLeftCoord.second + 1
                 }
             }
+            topLeftCoord = topLeftCoord.first + 1 to topLeftCoord.second + 1
         }
 
         return null
@@ -78,15 +78,17 @@ class SnakeGame(
 
     private fun addFood() {
         var foodRemaining = config.foodStatic + config.foodPerPlayer.toInt() * aliveSnakes.size - food.size
-        if (foodRemaining == 0) {
+        if (foodRemaining <= 0) {
             return
         }
+        val foodCoordinate = Coordinate(0, 0)
         for (x in 0..config.width) {
+            foodCoordinate.x++
             for (y in 0..config.height) {
-                val foodCoordinate = Coordinate(x, y)
+                foodCoordinate.y++
                 if (isPlaceFree(foodCoordinate)) {
                     food[foodCoordinate] = false
-                    if (foodRemaining-- == 0) {
+                    if (--foodRemaining == 0) {
                         return
                     }
                 }
@@ -98,15 +100,16 @@ class SnakeGame(
         //moving snakes
         aliveSnakes.forEach {
             val player = players[it.key]
-            val isAte = it.value.move(food)
-            if (isAte) {
+            val consumedFood = it.value.move(food)
+            if (consumedFood != null) {
+                food[consumedFood] = true
                 players[it.key] =
                     SnakesProto.GamePlayer.newBuilder(players[it.key]).setScore(player!!.score + 1).build()
             }
         }
         deadSnakes.forEach { it.value.move(food) }
 
-        //removing eaten food
+        //removing consumed food
         food.entries.removeIf { it.value }
 
         //checking collisions
@@ -139,10 +142,8 @@ class SnakeGame(
     }
 
     override fun generateNextState(): SnakesProto.GameState {
-        //todo
         doGameMove()
         stateOrder++
-
 
         return SnakesProto.GameState.newBuilder()
             .setStateOrder(stateOrder)

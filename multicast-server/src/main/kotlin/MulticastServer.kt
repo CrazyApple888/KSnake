@@ -62,7 +62,7 @@ class MulticastServer(
     private fun processMessage(message: DatagramPacket) {
         val gameMessage = parseMessage(message)
         if (null == gameMessage || !gameMessage.hasAnnouncement()) {
-            logger.warning("Multicast got message without announcement")
+            //logger.warning("Multicast got message without announcement")
             return
         }
         if (null == servers.putIfAbsent(message, gameMessage.announcement)) {

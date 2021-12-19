@@ -20,6 +20,7 @@ import ru.nsu.fit.isachenko.snakegame.ui.MainWindowController
 import java.lang.Exception
 import java.net.DatagramPacket
 import java.net.InetAddress
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.jvm.Throws
 
 class Main : Application(), Loggable {
@@ -39,6 +40,7 @@ class Main : Application(), Loggable {
             Platform.exit()
         }
         primaryStage?.show()
+        primaryStage?.requestFocus()
         logger.info("Application successfully started!")
         GameConfiguration.configure()
 
@@ -52,32 +54,24 @@ class Main : Application(), Loggable {
 
         painter.countCanvasScale(fake.config.width, fake.config.height)
 
-        painter.repaint(fake)
+        painter.repaint(fake, fake.config.width, fake.config.height)
 
         foo()
     }
 
     private fun foo() {
-        val server = SocketEndPoint(8080, 1000)
-        val client = SocketEndPoint(8090, 1000)
-
-        val message = "Hello".toByteArray()
-        val datagramPacket = DatagramPacket(message, message.size, InetAddress.getByName("localhost"), 8080)
-
-        client.send(datagramPacket)
-        CoroutineScope(Dispatchers.IO).launch {
-            val msg = server.receive()
-            println(String(msg.data) + " ${msg.port}")
-        }
-
         val a = generateCoordMsg(10, 11) to 1
         val b = generateCoordMsg(12, 13) to 2
         val c = generateCoordMsg(14, 11) to 3
 
         val map = mutableMapOf(a, b, c)
         println(map)
-        map.entries.removeIf{ it.value == 2 }
+        map.entries.removeIf { it.value == 2 }
         println(map)
+
+        val a1 = AtomicLong(0)
+        val a2 = AtomicLong(0)
+        println("${a1.getAndIncrement()}  ${a2.incrementAndGet()}")
 
     }
 
@@ -109,14 +103,20 @@ class Main : Application(), Loggable {
                     )
                     .addPoints(
                         SnakesProto.GameState.Coord.newBuilder()
-                            .setX(3)
-                            .setY(2)
+                            .setX(1)
+                            .setY(0)
                             .build()
                     )
                     .addPoints(
                         SnakesProto.GameState.Coord.newBuilder()
-                            .setX(4)
-                            .setY(2)
+                            .setX(1)
+                            .setY(0)
+                            .build()
+                    )
+                    .addPoints(
+                        SnakesProto.GameState.Coord.newBuilder()
+                            .setX(1)
+                            .setY(0)
                             .build()
                     )
                     .build()
@@ -134,14 +134,14 @@ class Main : Application(), Loggable {
                     )
                     .addPoints(
                         SnakesProto.GameState.Coord.newBuilder()
-                            .setX(3)
-                            .setY(4)
+                            .setX(1)
+                            .setY(0)
                             .build()
                     )
                     .addPoints(
                         SnakesProto.GameState.Coord.newBuilder()
-                            .setX(4)
-                            .setY(4)
+                            .setX(1)
+                            .setY(0)
                             .build()
                     )
                     .build()

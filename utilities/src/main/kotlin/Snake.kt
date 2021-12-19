@@ -10,14 +10,15 @@ class Snake(
 
 
     init {
-        val prevCoord = Coordinate(initialState.pointsList[0].x, initialState.pointsList[0].y)
-        _body += Coordinate(prevCoord.x, prevCoord.y)
+        var prevCoord = Coordinate(initialState.pointsList[0].x, initialState.pointsList[0].y)
+        _body += prevCoord
         initialState.pointsList
             .stream()
             .skip(1)
             .forEach { coord ->
-                prevCoord.x = euclidToRing(prevCoord.x + coord.x, width)
-                prevCoord.y = euclidToRing(prevCoord.y + coord.y, height)
+                val x = euclidToRing(prevCoord.x + coord.x, width)
+                val y = euclidToRing(prevCoord.y + coord.y, height)
+                prevCoord = Coordinate(x, y)
                 _body += prevCoord
             }
     }
@@ -29,7 +30,7 @@ class Snake(
         this._direction = direction
     }
 
-    fun move(food: MutableMap<Coordinate, Boolean>, direction: Direction = this._direction): Boolean {
+    fun move(food: Map<Coordinate, Boolean>, direction: Direction = this._direction): Coordinate? {
         val movedHead = when (direction) {
             Direction.UP -> Coordinate(_body[0].x, euclidToRing(_body[0].y - 1, height))
             Direction.DOWN -> Coordinate(_body[0].x, euclidToRing(_body[0].y + 1, height))
@@ -38,12 +39,11 @@ class Snake(
         }
         return if (food.keys.contains(movedHead)) {
             _body.add(0, movedHead)
-            food[movedHead] = true
-            true
+            food.keys.first { it == movedHead }
         } else {
             _body.removeLast()
             _body.add(0, movedHead)
-            false
+            null
         }
     }
 

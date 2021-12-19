@@ -10,6 +10,16 @@ import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
 import javafx.scene.text.Text
 import ServerDTO
+import SnakeServer
+import SnakesProto
+import game.GameConfiguration
+import game.SnakeGame
+import generateSteerMsg
+import javafx.scene.input.KeyCode
+import javafx.scene.input.KeyEvent
+import network.SocketEndPoint
+import ru.nsu.fit.isachenko.snakegame.network.ClientNetworkController
+import java.net.InetAddress
 import java.net.URL
 import java.util.*
 
@@ -27,6 +37,7 @@ class MainWindowController : MulticastObserver {
     var gameCanvas: Canvas? = null
         private set
 
+    var netController: ClientNetworkController? = null
 
     @FXML
     private var infoVbox: VBox? = null
@@ -88,9 +99,39 @@ class MainWindowController : MulticastObserver {
         avaibleGamesListview?.setOnMouseClicked {
             //todo handle clicks
         }
+
+        newGameButton?.setOnMouseClicked {
+            println("BUTTON PRESSED")
+            val config = GameConfiguration.buildConfig()
+            val game = SnakeGame(config)
+            val serverEndPoint = SocketEndPoint(8080, config.nodeTimeoutMs)
+            val clientEndPoint = SocketEndPoint(8090, config.nodeTimeoutMs)
+            val server = SnakeServer(config, serverEndPoint, game, 1, 8090)
+            val painter = FXPainter(gameCanvas!!, ratingListview!!)
+            val client =
+                ClientNetworkController(config, painter, clientEndPoint, InetAddress.getByName("localhost"), 8080)
+            server.start()
+            client.connect()
+            client.startListen()
+        }
     }
+
 
     override fun notify(newServer: ServerDTO) {
         avaibleGamesListview?.items?.add("$newServer")
+    }
+
+    fun handleKey(event: KeyEvent) {
+        val direction = when (event.code) {
+            KeyCode.W -> SnakesProto.Direction.UP
+            KeyCode.S -> SnakesProto.Direction.DOWN
+            KeyCode.A -> SnakesProto.Direction.RIGHT
+            KeyCode.D -> SnakesProto.Direction.LEFT
+            else -> return
+        }
+        netController?.lastSeq?.getAndIncrement()?.let {
+            val msg = generateSteerMsg(direction, it)
+            netController?.addMessageToQueue(msg)
+        }
     }
 }

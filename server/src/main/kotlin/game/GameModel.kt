@@ -5,6 +5,8 @@ import SnakesProto
 
 interface GameModel {
 
+    val players: MutableMap<Int, SnakesProto.GamePlayer>
+
     fun tryAddSnake() : Int?
 
     fun generateNextState() : SnakesProto.GameState
