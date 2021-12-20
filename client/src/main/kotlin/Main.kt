@@ -48,31 +48,6 @@ class Main : Application(), Loggable {
 
         multicastServer.subscribe(controller)
         multicastServer.run()
-
-        val fake = fakeState()
-        val painter = FXPainter(controller.gameCanvas!!, controller.ratingListview!!)
-
-        painter.countCanvasScale(fake.config.width, fake.config.height)
-
-        painter.repaint(fake, fake.config.width, fake.config.height)
-
-        foo()
-    }
-
-    private fun foo() {
-        val a = generateCoordMsg(10, 11) to 1
-        val b = generateCoordMsg(12, 13) to 2
-        val c = generateCoordMsg(14, 11) to 3
-
-        val map = mutableMapOf(a, b, c)
-        println(map)
-        map.entries.removeIf { it.value == 2 }
-        println(map)
-
-        val a1 = AtomicLong(0)
-        val a2 = AtomicLong(0)
-        println("${a1.getAndIncrement()}  ${a2.incrementAndGet()}")
-
     }
 
     companion object {
@@ -80,81 +55,5 @@ class Main : Application(), Loggable {
         fun main() {
             launch(Main::class.java)
         }
-    }
-
-    private fun fakeState(): SnakesProto.GameState {
-        return SnakesProto.GameState.newBuilder()
-            .addFoods(
-                SnakesProto.GameState.Coord.newBuilder()
-                    .setX(0)
-                    .setY(0)
-                    .build()
-            )
-            .addSnakes(
-                SnakesProto.GameState.Snake.newBuilder()
-                    .setState(SnakesProto.GameState.Snake.SnakeState.ALIVE)
-                    .setHeadDirection(SnakesProto.Direction.DOWN)
-                    .setPlayerId(1)
-                    .addPoints(
-                        SnakesProto.GameState.Coord.newBuilder()
-                            .setX(2)
-                            .setY(2)
-                            .build()
-                    )
-                    .addPoints(
-                        SnakesProto.GameState.Coord.newBuilder()
-                            .setX(1)
-                            .setY(0)
-                            .build()
-                    )
-                    .addPoints(
-                        SnakesProto.GameState.Coord.newBuilder()
-                            .setX(1)
-                            .setY(0)
-                            .build()
-                    )
-                    .addPoints(
-                        SnakesProto.GameState.Coord.newBuilder()
-                            .setX(1)
-                            .setY(0)
-                            .build()
-                    )
-                    .build()
-            )
-            .addSnakes(
-                SnakesProto.GameState.Snake.newBuilder()
-                    .setState(SnakesProto.GameState.Snake.SnakeState.ALIVE)
-                    .setHeadDirection(SnakesProto.Direction.DOWN)
-                    .setPlayerId(2)
-                    .addPoints(
-                        SnakesProto.GameState.Coord.newBuilder()
-                            .setX(2)
-                            .setY(4)
-                            .build()
-                    )
-                    .addPoints(
-                        SnakesProto.GameState.Coord.newBuilder()
-                            .setX(1)
-                            .setY(0)
-                            .build()
-                    )
-                    .addPoints(
-                        SnakesProto.GameState.Coord.newBuilder()
-                            .setX(1)
-                            .setY(0)
-                            .build()
-                    )
-                    .build()
-            )
-            .setStateOrder(1)
-            .setPlayers(SnakesProto.GamePlayers.getDefaultInstance())
-            .setConfig(
-                SnakesProto.GameConfig
-                    .newBuilder()
-                    .setWidth(50)
-                    .setHeight(50)
-                    .build()
-            )
-            .build()
     }
 }
