@@ -79,6 +79,8 @@ class MainWindowController : MulticastObserver {
     private var xScale = 1.0
     private var yScale = 1.0
 
+    private val servers = mutableMapOf<String, ServerDTO>()
+
     @FXML
     fun initialize() {
         assert(splitPane != null) { "fx:id=\"ui_splitpane\" was not injected: check your FXML file 'main_window.fxml'." }
@@ -97,7 +99,17 @@ class MainWindowController : MulticastObserver {
         assert(avaibleGamesListview != null) { "fx:id=\"avaible_games_listview\" was not injected: check your FXML file 'main_window.fxml'." }
 
         avaibleGamesListview?.setOnMouseClicked {
-            //todo handle clicks
+            val selectedServer = avaibleGamesListview?.selectionModel?.selectedItems?.get(0)
+            servers[selectedServer]?.let {
+                val config = it.gameInfo.config
+
+                val clientEndPoint = SocketEndPoint(8090, config.nodeTimeoutMs)
+                val painter = FXPainter(gameCanvas!!, ratingListview!!)
+                painter.countCanvasScale(config.width, config.height)
+                val client =  ClientNetworkController(config, painter, clientEndPoint, InetAddress.getByName(it.address), it.port)
+                client.connect()
+                client.startListen()
+            }
         }
 
         newGameButton?.setOnMouseClicked {
@@ -121,6 +133,7 @@ class MainWindowController : MulticastObserver {
 
     override fun notify(newServer: ServerDTO) {
         avaibleGamesListview?.items?.add("$newServer")
+        servers["$newServer"] = newServer
     }
 
     fun handleKey(event: KeyEvent) {

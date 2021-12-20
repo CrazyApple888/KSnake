@@ -67,7 +67,7 @@ class MulticastServer(
         }
         if (null == servers.putIfAbsent(message, gameMessage.announcement)) {
             logger.info("Multicast spotted new server with hostAddress ${message.address.hostAddress}")
-            subscribers.forEach { it.notify(ServerDTO(message.address.hostAddress, gameMessage.announcement)) }
+            subscribers.forEach { it.notify(ServerDTO(message.address.hostAddress, message.port, gameMessage.announcement)) }
         }
     }
 
