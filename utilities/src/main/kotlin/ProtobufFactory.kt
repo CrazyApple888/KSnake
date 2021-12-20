@@ -111,13 +111,13 @@ private fun coordinateToProtoCoord(prev: Coordinate, current: Coordinate): Snake
     val dx = current.x - prev.x
     val dy = current.y - prev.y
     return if (dx < 0) {
-        generateCoordMsg(1, 0)
-    } else if (dx > 0) {
         generateCoordMsg(-1, 0)
+    } else if (dx > 0) {
+        generateCoordMsg(1, 0)
     } else if (dy < 0) {
-        generateCoordMsg(0, 1)
-    } else if (dy > 0) {
         generateCoordMsg(0, -1)
+    } else if (dy > 0) {
+        generateCoordMsg(0, 1)
     } else {
         throw IllegalStateException("Prev and current point similar")
     }

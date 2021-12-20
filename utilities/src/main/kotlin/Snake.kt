@@ -5,13 +5,14 @@ class Snake(
 ) {
     private val _body = mutableListOf<Coordinate>()
     val body: List<Coordinate> get() = _body
-    private var _direction: Direction = Direction.UP
+    private var _direction: Direction
     val direction get() = _direction
 
 
     init {
         var prevCoord = Coordinate(initialState.pointsList[0].x, initialState.pointsList[0].y)
         _body += prevCoord
+        _direction = protoDirectionToDirection(initialState.headDirection)
         initialState.pointsList
             .stream()
             .skip(1)
