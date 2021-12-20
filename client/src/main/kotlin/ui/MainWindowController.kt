@@ -108,9 +108,11 @@ class MainWindowController : MulticastObserver {
             val clientEndPoint = SocketEndPoint(8090, config.nodeTimeoutMs)
             val server = SnakeServer(config, serverEndPoint, game, 1, 8090)
             val painter = FXPainter(gameCanvas!!, ratingListview!!)
+            painter.countCanvasScale(config.width, config.height)
             val client =
                 ClientNetworkController(config, painter, clientEndPoint, InetAddress.getByName("localhost"), 8080)
             server.start()
+            netController = client
             client.connect()
             client.startListen()
         }
@@ -122,11 +124,12 @@ class MainWindowController : MulticastObserver {
     }
 
     fun handleKey(event: KeyEvent) {
+        println("Key pressed")
         val direction = when (event.code) {
             KeyCode.W -> SnakesProto.Direction.UP
             KeyCode.S -> SnakesProto.Direction.DOWN
-            KeyCode.A -> SnakesProto.Direction.RIGHT
-            KeyCode.D -> SnakesProto.Direction.LEFT
+            KeyCode.D -> SnakesProto.Direction.RIGHT
+            KeyCode.A -> SnakesProto.Direction.LEFT
             else -> return
         }
         netController?.lastSeq?.getAndIncrement()?.let {

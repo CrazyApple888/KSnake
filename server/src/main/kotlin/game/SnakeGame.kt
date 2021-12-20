@@ -129,13 +129,13 @@ class SnakeGame(
 
     private fun isCollision(point: Coordinate): Boolean {
         var collisionSnake = runCatching {
-            aliveSnakes.entries.first { it.value.body.contains(point) }
+            aliveSnakes.entries.first { entry -> entry.value.body.stream().skip(1).anyMatch { it == point } }
         }
         if (collisionSnake.isSuccess) {
             return true
         }
         collisionSnake = runCatching {
-            deadSnakes.entries.first { it.value.body.contains(point) }
+            deadSnakes.entries.first { entry -> entry.value.body.stream().skip(1).anyMatch { it == point } }
         }
 
         return collisionSnake.isSuccess

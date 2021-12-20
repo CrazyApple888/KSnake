@@ -76,6 +76,7 @@ class SnakeServer(
 
                 val packet = endPoint.receive()
                 parseGameMessage(packet)?.let { protoMsg ->
+                    logger.info(protoMsg.toString())
                     processMessage(protoMsg, packet.address.hostAddress, packet.port)
                 }
             }

@@ -109,6 +109,7 @@ class ClientNetworkController(
                 sendMessages()
 
                 val message = receiveMessage()
+                logger.info(message.toString())
 
                 processMessage(message)
             }

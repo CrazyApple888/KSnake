@@ -27,6 +27,9 @@ class Snake(
         _body.contains(coordinate)
 
     fun changeDirection(direction: Direction) {
+        if (-direction == _direction) {
+            return
+        }
         this._direction = direction
     }
 
@@ -34,8 +37,8 @@ class Snake(
         val movedHead = when (direction) {
             Direction.UP -> Coordinate(_body[0].x, euclidToRing(_body[0].y - 1, height))
             Direction.DOWN -> Coordinate(_body[0].x, euclidToRing(_body[0].y + 1, height))
-            Direction.LEFT -> Coordinate(_body[0].x - 1, euclidToRing(_body[0].y, width))
-            Direction.RIGHT -> Coordinate(_body[0].x + 1, euclidToRing(_body[0].y, width))
+            Direction.LEFT -> Coordinate(euclidToRing(_body[0].x - 1, width), _body[0].y)
+            Direction.RIGHT -> Coordinate(euclidToRing(_body[0].x + 1, width), euclidToRing(_body[0].y, width))
         }
         return if (food.keys.contains(movedHead)) {
             _body.add(0, movedHead)
@@ -66,3 +69,11 @@ enum class Direction {
     LEFT,
     RIGHT
 }
+
+operator fun Direction.unaryMinus(): Direction =
+    when (this) {
+        Direction.UP -> Direction.DOWN
+        Direction.DOWN -> Direction.UP
+        Direction.LEFT -> Direction.RIGHT
+        Direction.RIGHT -> Direction.LEFT
+    }
