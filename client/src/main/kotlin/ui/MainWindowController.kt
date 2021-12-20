@@ -80,6 +80,7 @@ class MainWindowController : MulticastObserver {
     private var yScale = 1.0
 
     private val servers = mutableMapOf<String, ServerDTO>()
+    private var isGameRunning = false
 
     @FXML
     fun initialize() {
@@ -99,20 +100,27 @@ class MainWindowController : MulticastObserver {
         assert(avaibleGamesListview != null) { "fx:id=\"avaible_games_listview\" was not injected: check your FXML file 'main_window.fxml'." }
 
         avaibleGamesListview?.setOnMouseClicked {
+            if (isGameRunning) {
+                return@setOnMouseClicked
+            }
             val selectedServer = avaibleGamesListview?.selectionModel?.selectedItems?.get(0)
             servers[selectedServer]?.let {
                 val config = it.gameInfo.config
 
-                val clientEndPoint = SocketEndPoint(8090, config.nodeTimeoutMs)
+                val clientEndPoint = SocketEndPoint(8070, config.nodeTimeoutMs)
                 val painter = FXPainter(gameCanvas!!, ratingListview!!)
                 painter.countCanvasScale(config.width, config.height)
                 val client =  ClientNetworkController(config, painter, clientEndPoint, InetAddress.getByName(it.address), it.port)
                 client.connect()
                 client.startListen()
+                isGameRunning = true
             }
         }
 
         newGameButton?.setOnMouseClicked {
+            if (isGameRunning) {
+                return@setOnMouseClicked
+            }
             println("BUTTON PRESSED")
             val config = GameConfiguration.buildConfig()
             val game = SnakeGame(config)
@@ -127,6 +135,7 @@ class MainWindowController : MulticastObserver {
             netController = client
             client.connect()
             client.startListen()
+            isGameRunning = true
         }
     }
 

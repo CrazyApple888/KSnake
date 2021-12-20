@@ -187,13 +187,13 @@ class SnakeServer(
         System.currentTimeMillis() - prevTime >= gameConfig.stateDelayMs
 
     private suspend fun sendPromotion() = withContext(Dispatchers.IO) {
-        val multicastSocket = MulticastSocket(9192)
+        //val multicastSocket = MulticastSocket(9192)
         val multicastAddress = InetAddress.getByName("239.192.0.4")
-        multicastSocket.joinGroup(multicastAddress)
+        //multicastSocket.joinGroup(multicastAddress)
         while (true) {
             val msg = announcementMsg.toByteArray()
             val packet = DatagramPacket(msg, msg.size, multicastAddress, 9192)
-            multicastSocket.send(packet)
+            endPoint.send(packet)
             delay(1000L)
         }
     }

@@ -2,7 +2,6 @@ package ru.nsu.fit.isachenko.snakegame
 
 import Loggable
 import MulticastServer
-import SnakesProto
 import javafx.application.Application
 import javafx.application.Platform
 import javafx.fxml.FXMLLoader
@@ -10,17 +9,9 @@ import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.stage.Stage
 import game.GameConfiguration
-import generateCoordMsg
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import network.SocketEndPoint
-import ru.nsu.fit.isachenko.snakegame.ui.FXPainter
 import ru.nsu.fit.isachenko.snakegame.ui.MainWindowController
 import java.lang.Exception
-import java.net.DatagramPacket
 import java.net.InetAddress
-import java.util.concurrent.atomic.AtomicLong
 import kotlin.jvm.Throws
 
 class Main : Application(), Loggable {

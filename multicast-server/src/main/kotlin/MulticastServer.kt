@@ -62,7 +62,7 @@ class MulticastServer(
     private fun processMessage(message: DatagramPacket) {
         val gameMessage = parseMessage(message)
         if (null == gameMessage || !gameMessage.hasAnnouncement()) {
-            //logger.warning("Multicast got message without announcement")
+            logger.warning("Multicast got message without announcement")
             return
         }
         if (null == servers.putIfAbsent(message, gameMessage.announcement)) {
@@ -73,7 +73,8 @@ class MulticastServer(
 
     private fun parseMessage(message: DatagramPacket): SnakesProto.GameMessage? {
         return try {
-            SnakesProto.GameMessage.parseFrom(message.data.inputStream())
+            val bytes = Arrays.copyOf(message.data, message.length)
+            SnakesProto.GameMessage.parseFrom(bytes)
         } catch (exc: Exception) {
             null
         }
