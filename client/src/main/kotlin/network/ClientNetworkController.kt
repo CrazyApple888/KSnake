@@ -9,11 +9,9 @@ import generateJoinMsg
 import generatePingMsg
 import kotlinx.coroutines.*
 import network.EndPoint
-import network.SocketEndPoint
 import ru.nsu.fit.isachenko.snakegame.ui.Painter
 import java.net.DatagramPacket
 import java.net.InetAddress
-import java.nio.charset.StandardCharsets
 import java.util.*
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.atomic.AtomicLong
@@ -64,8 +62,7 @@ class ClientNetworkController(
         endPoint.send(datagram)
         try {
             val msg = endPoint.receive()
-            val strWithoutZeros = String(msg.data, StandardCharsets.UTF_8).trimEnd { it == 0.toChar() }
-            val bytes = Arrays.copyOf(msg.data, msg.length) //strWithoutZeros.toByteArray(StandardCharsets.UTF_8)
+            val bytes = Arrays.copyOf(msg.data, msg.length)
             val protoAnswer = SnakesProto.GameMessage.parseFrom(bytes)
             if (protoAnswer.hasAck() && protoAnswer.hasReceiverId()) {
                 myId = protoAnswer.receiverId
@@ -89,21 +86,11 @@ class ClientNetworkController(
     fun stop() {
         pingRoutine.cancel()
         listenRoutine?.cancel()
+        endPoint.close()
         logger.info("ClientController has stopped")
     }
 
     private fun listen() {
-        //  send messages
-        //  wait answer from server and process gotten message:
-        //                                                      ack
-        //                                                      roleChange =====> deputy  --> set deputy flag true
-        //                                                      stateMsg   =====> repaint view
-        //
-        //  check timeouts and resend, if it requires
-        //  and think about server timeout at the same time !!!
-        //  server timeout expired                                         =====> deputy? --> make this server master,
-        //                                                                                    start server routine
-        //                                                                 =====> normal? --> send all to deputy
         while (isAlive) {
             val result = runCatching {
                 sendMessages()
@@ -119,7 +106,6 @@ class ClientNetworkController(
                     serverAddress = InetAddress.getByName(deputy!!.ipAddress)
                     serverPort = deputy!!.port
                 } else if (isDeputy) {
-                    //todo else start server
                     runServer()
                 } else {
                     logger.info(result.exceptionOrNull()?.message)
@@ -134,18 +120,19 @@ class ClientNetworkController(
         val game = SnakeGame(config, lastState)
         val newPort = endPoint.port + 10
         val server = SnakeServer(config, endPoint, game, myId, newPort)
+        server.start(true)
 
-        serverAddress = endPoint.address
+        serverAddress = InetAddress.getByName("localhost")
         serverPort = endPoint.port
-        endPoint = SocketEndPoint(newPort, config.nodeTimeoutMs)
+        endPoint = endPoint.newEndPoint(newPort, config.nodeTimeoutMs)
 
-        server.start()
+        isDeputy = false
     }
 
     private suspend fun pingRoutine() {
         var time: Long
         while (true) {
-            delay(config.nodeTimeoutMs.toLong())
+            delay(config.pingDelayMs.toLong())
             time = System.currentTimeMillis()
             if (time - lastMessageTime >= config.pingDelayMs) {
                 lastMessageTime = time
@@ -172,11 +159,7 @@ class ClientNetworkController(
                 isDeputy = true
             }
         } else if (message.hasSteer() && isDeputy) {
-            //сервер отвалился, стартуем сервер от себя. Депутатом назначаем чела, который прислал steer,
-            //заменяем серверный енд поинт на созданный сервер
-            //заменяем клиентский порт на другой
-            //рассылаем role change
-            TODO()
+            runServer()
         }
     }
 
@@ -196,8 +179,7 @@ class ClientNetworkController(
 
     private fun receiveMessage(): SnakesProto.GameMessage {
         val packet = endPoint.receive()
-        val strWithoutZeros = String(packet.data, StandardCharsets.UTF_8).trimEnd { it == 0.toChar() }
-        val bytes = Arrays.copyOf(packet.data, packet.length)//strWithoutZeros.toByteArray(StandardCharsets.UTF_8)
+        val bytes = Arrays.copyOf(packet.data, packet.length)
         return SnakesProto.GameMessage.parseFrom(bytes)
     }
 
@@ -218,5 +200,4 @@ class ClientNetworkController(
         val packet = DatagramPacket(bytesMsg, message.serializedSize, serverAddress, serverPort)
         endPoint.send(packet)
     }
-
 }

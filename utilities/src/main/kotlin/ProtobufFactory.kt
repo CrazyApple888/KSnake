@@ -161,3 +161,21 @@ fun generateSteerMsg(direction: SnakesProto.Direction, seq: Long): SnakesProto.G
         )
         .setMsgSeq(seq)
         .build()
+
+fun generateAnnouncementMsg(
+    gameConfig: SnakesProto.GameConfig,
+    players: List<SnakesProto.GamePlayer>,
+    seq: Long,
+    senderId: Int
+) =
+    SnakesProto.GameMessage.newBuilder()
+        .setAnnouncement(
+            SnakesProto.GameMessage.AnnouncementMsg.newBuilder()
+                .setConfig(gameConfig)
+                .setCanJoin(true)
+                .setPlayers(SnakesProto.GamePlayers.newBuilder().addAllPlayers(players).build())
+                .build()
+        )
+        .setMsgSeq(seq)
+        .setSenderId(senderId)
+        .build()

@@ -36,9 +36,15 @@ class Main : Application(), Loggable {
         GameConfiguration.configure()
 
         val controller = loader.getController<MainWindowController>()
-
         multicastServer.subscribe(controller)
         multicastServer.run()
+
+        primaryStage?.setOnCloseRequest {
+            multicastServer.stop()
+            controller.netController?.stop()
+            controller.gameServer?.stop()
+            Platform.exit()
+        }
     }
 
     companion object {

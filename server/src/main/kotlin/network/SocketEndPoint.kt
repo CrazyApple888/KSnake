@@ -2,17 +2,13 @@ package network
 
 import java.net.DatagramPacket
 import java.net.DatagramSocket
-import java.net.InetAddress
 
 class SocketEndPoint(
-    port: Int,
+    override val port: Int,
     timeout: Int
 ) : EndPoint {
 
     private var socket = DatagramSocket(port)
-    override val port
-        get() = socket.port
-    override val address: InetAddress get() = socket.localAddress
 
     init {
         socket.soTimeout = timeout
@@ -32,4 +28,7 @@ class SocketEndPoint(
     override fun close() {
         socket.close()
     }
+
+    override fun newEndPoint(port: Int, timeout: Int): EndPoint =
+        SocketEndPoint(port, timeout)
 }

@@ -1,10 +1,6 @@
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import java.lang.Exception
 import java.net.DatagramPacket
@@ -26,18 +22,6 @@ class MulticastServer(
 
     private var listenJob: Job? = null
 
-    fun getPortByHostAddress(hostAddress: String): Optional<Int> =
-        servers.keys.stream()
-            .filter { it.address.hostAddress == hostAddress }
-            .map { it.port }
-            .findFirst()
-
-    fun getAddressByHostAddress(hostAddress: String): Optional<InetAddress> =
-        servers.keys.stream()
-            .filter { it.address.hostAddress == hostAddress }
-            .map { it.address }
-            .findFirst()
-
     fun run() {
         listenJob = CoroutineScope(Dispatchers.IO).launch {
             listen()
@@ -46,6 +30,7 @@ class MulticastServer(
 
     fun stop() {
         listenJob?.cancel()
+        multicastSocket.close()
     }
 
     private fun listen() {
@@ -53,7 +38,6 @@ class MulticastServer(
         val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
         val message = DatagramPacket(buffer, DEFAULT_BUFFER_SIZE)
         while (true) {
-            //todo delete AFK servers
             multicastSocket.receive(message)
             processMessage(message)
         }

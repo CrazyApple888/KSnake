@@ -38,6 +38,9 @@ class MainWindowController : MulticastObserver {
         private set
 
     var netController: ClientNetworkController? = null
+        private set
+    var gameServer: SnakeServer? = null
+        private set
 
     @FXML
     private var infoVbox: VBox? = null
@@ -76,9 +79,6 @@ class MainWindowController : MulticastObserver {
     @FXML
     private var avaibleGamesListview: ListView<String>? = null
 
-    private var xScale = 1.0
-    private var yScale = 1.0
-
     private val servers = mutableMapOf<String, ServerDTO>()
     private var isGameRunning = false
 
@@ -99,44 +99,9 @@ class MainWindowController : MulticastObserver {
         assert(newGameButton != null) { "fx:id=\"new_game_button\" was not injected: check your FXML file 'main_window.fxml'." }
         assert(avaibleGamesListview != null) { "fx:id=\"avaible_games_listview\" was not injected: check your FXML file 'main_window.fxml'." }
 
-        avaibleGamesListview?.setOnMouseClicked {
-            if (isGameRunning) {
-                return@setOnMouseClicked
-            }
-            val selectedServer = avaibleGamesListview?.selectionModel?.selectedItems?.get(0)
-            servers[selectedServer]?.let {
-                val config = it.gameInfo.config
-
-                val clientEndPoint = SocketEndPoint(8070, config.nodeTimeoutMs)
-                val painter = FXPainter(gameCanvas!!, ratingListview!!)
-                painter.countCanvasScale(config.width, config.height)
-                val client =  ClientNetworkController(config, painter, clientEndPoint, InetAddress.getByName(it.address), it.port)
-                client.connect()
-                client.startListen()
-                isGameRunning = true
-            }
-        }
-
-        newGameButton?.setOnMouseClicked {
-            if (isGameRunning) {
-                return@setOnMouseClicked
-            }
-            println("BUTTON PRESSED")
-            val config = GameConfiguration.buildConfig()
-            val game = SnakeGame(config)
-            val serverEndPoint = SocketEndPoint(8080, config.nodeTimeoutMs)
-            val clientEndPoint = SocketEndPoint(8090, config.nodeTimeoutMs)
-            val server = SnakeServer(config, serverEndPoint, game, 1, 8090)
-            val painter = FXPainter(gameCanvas!!, ratingListview!!)
-            painter.countCanvasScale(config.width, config.height)
-            val client =
-                ClientNetworkController(config, painter, clientEndPoint, InetAddress.getByName("localhost"), 8080)
-            server.start()
-            netController = client
-            client.connect()
-            client.startListen()
-            isGameRunning = true
-        }
+        avaibleGamesListview?.setOnMouseClicked { handleListViewClick() }
+        newGameButton?.setOnMouseClicked { handleNewGameButton() }
+        leaveButton?.setOnMouseClicked { handleLeaveButton() }
     }
 
 
@@ -158,5 +123,56 @@ class MainWindowController : MulticastObserver {
             val msg = generateSteerMsg(direction, it)
             netController?.addMessageToQueue(msg)
         }
+    }
+
+    private fun handleNewGameButton() {
+        if (isGameRunning) {
+            return
+        }
+        println("BUTTON PRESSED")
+        val config = GameConfiguration.buildConfig()
+        val game = SnakeGame(config)
+        val serverEndPoint = SocketEndPoint(8080, config.nodeTimeoutMs)
+        val clientEndPoint = SocketEndPoint(8090, config.nodeTimeoutMs)
+        val server = SnakeServer(config, serverEndPoint, game, 1, 8090)
+        val painter = FXPainter(gameCanvas!!, ratingListview!!)
+        painter.countCanvasScale(config.width, config.height)
+        val client =
+            ClientNetworkController(config, painter, clientEndPoint, InetAddress.getByName("localhost"), 8080)
+        server.start()
+        this.gameServer = server
+        netController = client
+        client.connect()
+        client.startListen()
+        isGameRunning = true
+    }
+
+    private fun handleListViewClick() {
+        if (isGameRunning) {
+            return
+        }
+        val selectedServer = avaibleGamesListview?.selectionModel?.selectedItems?.get(0)
+        servers[selectedServer]?.let {
+            val config = it.gameInfo.config
+
+            val clientEndPoint = SocketEndPoint(8070, config.nodeTimeoutMs)
+            val painter = FXPainter(gameCanvas!!, ratingListview!!)
+            painter.countCanvasScale(config.width, config.height)
+            val client =
+                ClientNetworkController(config, painter, clientEndPoint, InetAddress.getByName(it.address), it.port)
+            client.connect()
+            client.startListen()
+            isGameRunning = true
+            netController = client
+        }
+    }
+
+    private fun handleLeaveButton() {
+        netController?.stop()
+        gameServer?.stop()
+        netController = null
+        gameServer = null
+        isGameRunning = false
+        gameCanvas?.graphicsContext2D?.clearRect(0.0, 0.0, gameCanvas!!.width, gameCanvas!!.height)
     }
 }
