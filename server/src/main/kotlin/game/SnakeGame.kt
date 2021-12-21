@@ -45,8 +45,7 @@ class SnakeGame(
                     val snake = generateSnakeWithRandomDirection(
                         ++lastId,
                         euclidToRing(coord.x, config.width),
-                        euclidToRing(coord.y, config.height),
-                        config
+                        euclidToRing(coord.y, config.height)
                     )
                     aliveSnakes[lastId] = Snake(snake, config.width, config.height)
                     return snake.playerId
@@ -166,5 +165,12 @@ class SnakeGame(
 
     override fun changeSnakeDirection(playerId: Int, direction: Direction) {
         aliveSnakes[playerId]?.changeDirection(direction)
+    }
+
+    override fun killPlayer(id: Int) {
+        players.remove(id)
+        aliveSnakes.remove(id)?.also { snake ->
+            deadSnakes[id] = snake
+        }
     }
 }

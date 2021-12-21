@@ -16,8 +16,6 @@ object GameConfiguration : Loggable {
         "node_timeout_ms" to 80000.0, //после этого таймаута клиент умер
     )
 
-    fun getParameterByName(name: String): Double = config.getValue(name)
-
     fun buildConfig(): SnakesProto.GameConfig =
         SnakesProto.GameConfig.newBuilder()
             .setWidth(config.getValue("width").toInt())

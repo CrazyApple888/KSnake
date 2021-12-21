@@ -39,8 +39,7 @@ fun generateCoordMsg(x: Int, y: Int): SnakesProto.GameState.Coord =
 fun generateSnakeWithRandomDirection(
     playerId: Int,
     headX: Int,
-    headY: Int,
-    config: SnakesProto.GameConfig
+    headY: Int
 ): SnakesProto.GameState.Snake {
     val headCoord = SnakesProto.GameState.Coord.newBuilder()
         .setX(headX)
@@ -167,7 +166,7 @@ fun generateAnnouncementMsg(
     players: List<SnakesProto.GamePlayer>,
     seq: Long,
     senderId: Int
-) =
+): SnakesProto.GameMessage =
     SnakesProto.GameMessage.newBuilder()
         .setAnnouncement(
             SnakesProto.GameMessage.AnnouncementMsg.newBuilder()

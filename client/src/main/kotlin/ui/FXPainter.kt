@@ -1,13 +1,11 @@
 package ru.nsu.fit.isachenko.snakegame.ui
 
-import Coordinate
 import Snake
 import javafx.application.Platform
 import javafx.scene.canvas.Canvas
 import javafx.scene.canvas.GraphicsContext
 import javafx.scene.control.ListView
 import javafx.scene.paint.Color
-import javafx.scene.shape.ArcType
 import kotlin.math.abs
 
 class FXPainter(

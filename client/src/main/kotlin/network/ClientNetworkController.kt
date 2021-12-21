@@ -30,8 +30,7 @@ class ClientNetworkController(
 
     private var deputy: SnakesProto.GamePlayer? = null
 
-    var lastState: SnakesProto.GameState = SnakesProto.GameState.getDefaultInstance()
-        private set
+    private var lastState: SnakesProto.GameState = SnakesProto.GameState.getDefaultInstance()
 
     private var lastMessageTime: Long = System.currentTimeMillis()
 

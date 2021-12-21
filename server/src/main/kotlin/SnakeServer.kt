@@ -4,8 +4,6 @@ import kotlinx.coroutines.*
 import network.EndPoint
 import java.net.DatagramPacket
 import java.net.InetAddress
-import java.net.MulticastSocket
-import java.nio.charset.StandardCharsets
 import java.util.*
 import java.util.concurrent.atomic.AtomicLong
 
@@ -20,6 +18,8 @@ class SnakeServer(
     private var serverSocketJob: Job? = null
     private var promoterJob: Job? = null
     private var stateSenderJob: Job? = null
+    private var timeoutCheckerJob: Job? = null
+
     private val announcementMsg: SnakesProto.GameMessage
         get() = generateAnnouncementMsg(
             gameConfig,
@@ -28,7 +28,6 @@ class SnakeServer(
             myId
         )
 
-    private var prevTime: Long = 0L
     private var msgSeq = AtomicLong(0)
 
     private var deputy: Pair<Int, Boolean>? = null
@@ -36,8 +35,8 @@ class SnakeServer(
     //address to player
     private val players = mutableMapOf<String, SnakesProto.GamePlayer>()
 
-    //id to time
-    private val lastMessageTime = mutableMapOf<Int, Long>()
+    //address to time
+    private val lastMessageTime = mutableMapOf<String, Long>()
     private val notAckedMessages = mutableMapOf<Int, MutableList<SnakesProto.GameMessage>>()
 
     init {
@@ -51,24 +50,16 @@ class SnakeServer(
             listen()
         }
         if (isFromDeputy) {
-            players.forEach { entry ->
-                val msg = generateRoleChangeMsg(
-                    SnakesProto.NodeRole.MASTER,
-                    SnakesProto.NodeRole.NORMAL,
-                    entry.value.id,
-                    myId,
-                    msgSeq.getAndIncrement()
-                )
-                val address = InetAddress.getByName(entry.key)
-                val packet = DatagramPacket(msg.toByteArray(), msg.serializedSize, address, entry.value.port)
-                endPoint.send(packet)
-            }
+            getPlayers()
         }
         promoterJob = CoroutineScope(Dispatchers.IO).launch {
             sendPromotion()
         }
         stateSenderJob = CoroutineScope(Dispatchers.IO).launch {
             sendStates()
+        }
+        timeoutCheckerJob = CoroutineScope(Dispatchers.IO).launch {
+            checkTimeouts()
         }
         logger.info("SnakeServer started")
     }
@@ -77,6 +68,7 @@ class SnakeServer(
         serverSocketJob?.cancel()
         promoterJob?.cancel()
         stateSenderJob?.cancel()
+        timeoutCheckerJob?.cancel()
         endPoint.close()
         logger.info("SnakeServer canceled")
     }
@@ -105,7 +97,7 @@ class SnakeServer(
             players[address]?.let {
                 gameModel.changeSnakeDirection(it.id, protoDirectionToDirection(message.steer.direction))
                 sendAck(it.id, message.msgSeq, address, it.port)
-                lastMessageTime[it.id] = System.currentTimeMillis()
+                lastMessageTime[address] = System.currentTimeMillis()
             }
         } else if (message.hasAck()) {
             if (deputy != null && !deputy!!.second && message.senderId == deputy!!.first) {
@@ -113,11 +105,11 @@ class SnakeServer(
             }
             notAckedMessages[message.senderId]?.removeIf { it.msgSeq <= message.msgSeq }
             players[address]?.let {
-                lastMessageTime[it.id] = System.currentTimeMillis()
+                lastMessageTime[address] = System.currentTimeMillis()
             }
         } else if (message.hasPing()) {
             players[address]?.let {
-                lastMessageTime[it.id] = System.currentTimeMillis()
+                lastMessageTime[address] = System.currentTimeMillis()
                 sendAck(it.id, message.msgSeq, address, it.port)
             }
         } else if (message.hasJoin()) {
@@ -160,7 +152,7 @@ class SnakeServer(
             val packet =
                 DatagramPacket(ackMsg.toByteArray(), ackMsg.serializedSize, InetAddress.getByName(address), port)
             endPoint.send(packet)
-            lastMessageTime[id] = System.currentTimeMillis()
+            lastMessageTime[address] = System.currentTimeMillis()
         }
     }
 
@@ -194,8 +186,22 @@ class SnakeServer(
         return null
     }
 
-    private fun checkTimeout() =
-        System.currentTimeMillis() - prevTime >= gameConfig.stateDelayMs
+    private suspend fun checkTimeouts() {
+        while (true) {
+            lastMessageTime
+                .filter { System.currentTimeMillis() - it.value > gameConfig.nodeTimeoutMs }
+                .forEach { entry ->
+                    players[entry.key]?.id?.also { gameModel.killPlayer(it) }
+                    players.remove(entry.key)?.also { player ->
+                        if (player.role == SnakesProto.NodeRole.DEPUTY) {
+                            deputy = null
+                        }
+                    }
+                    lastMessageTime.remove(entry.key)
+                }
+            delay(gameConfig.nodeTimeoutMs.toLong())
+        }
+    }
 
     private suspend fun sendPromotion() = withContext(Dispatchers.IO) {
         val multicastAddress = InetAddress.getByName("239.192.0.4")
@@ -216,6 +222,21 @@ class SnakeServer(
                 println(exc.message)
             }
             delay(gameConfig.stateDelayMs.toLong())
+        }
+    }
+
+    private fun getPlayers() {
+        players.forEach { entry ->
+            val msg = generateRoleChangeMsg(
+                SnakesProto.NodeRole.MASTER,
+                SnakesProto.NodeRole.NORMAL,
+                entry.value.id,
+                myId,
+                msgSeq.getAndIncrement()
+            )
+            val address = InetAddress.getByName(entry.key)
+            val packet = DatagramPacket(msg.toByteArray(), msg.serializedSize, address, entry.value.port)
+            endPoint.send(packet)
         }
     }
 }

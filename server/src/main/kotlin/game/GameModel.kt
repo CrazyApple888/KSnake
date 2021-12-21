@@ -13,4 +13,6 @@ interface GameModel {
 
     fun changeSnakeDirection(playerId: Int, direction: Direction)
 
+    fun killPlayer(id: Int)
+
 }
