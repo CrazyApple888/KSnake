@@ -1,7 +1,4 @@
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import java.lang.Exception
 import java.net.DatagramPacket
 
@@ -16,9 +13,9 @@ class MulticastServer(
     port: Int
 ) : Loggable, MulticastObservable {
 
-    private val subscribers = mutableListOf<MulticastObserver>()
     private val multicastSocket = MulticastSocket(port)
     private val servers = mutableMapOf<DatagramPacket, AnnouncementMessage>()
+    private val subscribers = mutableListOf<MulticastObserver>()
 
     private var listenJob: Job? = null
 
@@ -30,14 +27,13 @@ class MulticastServer(
 
     fun stop() {
         listenJob?.cancel()
-        multicastSocket.close()
     }
 
-    private fun listen() {
+    private suspend fun listen() = withContext(Dispatchers.IO) {
         multicastSocket.joinGroup(address)
         val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
         val message = DatagramPacket(buffer, DEFAULT_BUFFER_SIZE)
-        while (true) {
+        while (isActive) {
             multicastSocket.receive(message)
             processMessage(message)
         }
@@ -51,7 +47,15 @@ class MulticastServer(
         }
         if (null == servers.putIfAbsent(message, gameMessage.announcement)) {
             logger.info("Multicast spotted new server with hostAddress ${message.address.hostAddress}")
-            subscribers.forEach { it.notify(ServerDTO(message.address.hostAddress, message.port, gameMessage.announcement)) }
+            subscribers.forEach {
+                it.notify(
+                    ServerDTO(
+                        message.address.hostAddress,
+                        message.port,
+                        gameMessage.announcement
+                    )
+                )
+            }
         }
     }
 

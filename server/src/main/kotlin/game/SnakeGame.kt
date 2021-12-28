@@ -76,22 +76,21 @@ class SnakeGame(
     }
 
     private fun addFood() {
-        var foodRemaining = config.foodStatic + config.foodPerPlayer.toInt() * aliveSnakes.size - food.size
+        val foodRemaining = config.foodStatic + config.foodPerPlayer.toInt() * aliveSnakes.size - food.size
         if (foodRemaining <= 0) {
             return
         }
-        val foodCoordinate = Coordinate(0, 0)
-        for (x in 0..config.width) {
-            foodCoordinate.x++
-            for (y in 0..config.height) {
-                foodCoordinate.y++
-                if (isPlaceFree(foodCoordinate)) {
-                    food[foodCoordinate] = false
-                    if (--foodRemaining == 0) {
-                        return
-                    }
-                }
+        val freePoints = mutableListOf<Coordinate>()
+        (0 until config.width).forEach { x ->
+            (0 until config.height).forEach { y ->
+                val coordinate = Coordinate(x, y)
+                if (isPlaceFree(coordinate)) freePoints += coordinate
             }
+        }
+        for (i in 1..foodRemaining) {
+            val point = freePoints.random()
+            food[point] = false
+            freePoints.remove(point)
         }
     }
 

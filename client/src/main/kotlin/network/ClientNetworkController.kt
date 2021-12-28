@@ -89,13 +89,13 @@ class ClientNetworkController(
         logger.info("ClientController has stopped")
     }
 
-    private fun listen() {
-        while (isAlive) {
+    private suspend fun listen() = withContext(Dispatchers.IO) {
+        while (isAlive && isActive) {
             val result = runCatching {
                 sendMessages()
 
                 val message = receiveMessage()
-                logger.info(message.toString())
+                //logger.info(message.toString())
 
                 processMessage(message)
             }
@@ -128,9 +128,9 @@ class ClientNetworkController(
         isDeputy = false
     }
 
-    private suspend fun pingRoutine() {
+    private suspend fun pingRoutine()  = withContext(Dispatchers.IO) {
         var time: Long
-        while (true) {
+        while (isActive) {
             delay(config.pingDelayMs.toLong())
             time = System.currentTimeMillis()
             if (time - lastMessageTime >= config.pingDelayMs) {

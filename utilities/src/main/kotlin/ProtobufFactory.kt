@@ -1,4 +1,5 @@
 import java.lang.IllegalStateException
+import kotlin.math.abs
 
 fun generateJoinMsg(name: String, seq: Long): SnakesProto.GameMessage =
     SnakesProto.GameMessage.newBuilder()
@@ -107,8 +108,14 @@ fun generateGameMessageWithState(state: SnakesProto.GameState, seq: Long): Snake
 
 
 private fun coordinateToProtoCoord(prev: Coordinate, current: Coordinate): SnakesProto.GameState.Coord {
-    val dx = current.x - prev.x
-    val dy = current.y - prev.y
+    var dx = current.x - prev.x
+    var dy = current.y - prev.y
+    if (abs(dx) > 1) {
+        dx *= (-1)
+    }
+    if (abs(dy) > 1) {
+        dy *= (-1)
+    }
     return if (dx < 0) {
         generateCoordMsg(-1, 0)
     } else if (dx > 0) {

@@ -73,8 +73,8 @@ class SnakeServer(
         logger.info("SnakeServer canceled")
     }
 
-    private fun listen() {
-        while (true) {
+    private suspend fun listen() = withContext(Dispatchers.IO) {
+        while (isActive) {
             val result = runCatching {
                 val packet = endPoint.receive()
                 parseGameMessage(packet)?.let { protoMsg ->
@@ -186,8 +186,8 @@ class SnakeServer(
         return null
     }
 
-    private suspend fun checkTimeouts() {
-        while (true) {
+    private suspend fun checkTimeouts() = withContext(Dispatchers.Default) {
+        while (isActive) {
             lastMessageTime
                 .filter { System.currentTimeMillis() - it.value > gameConfig.nodeTimeoutMs }
                 .forEach { entry ->
@@ -205,7 +205,7 @@ class SnakeServer(
 
     private suspend fun sendPromotion() = withContext(Dispatchers.IO) {
         val multicastAddress = InetAddress.getByName("239.192.0.4")
-        while (true) {
+        while (isActive) {
             val msg = announcementMsg.toByteArray()
             val packet = DatagramPacket(msg, msg.size, multicastAddress, 9192)
             endPoint.send(packet)
@@ -213,8 +213,8 @@ class SnakeServer(
         }
     }
 
-    private suspend fun sendStates() {
-        while (true) {
+    private suspend fun sendStates() = withContext(Dispatchers.IO) {
+        while (isActive) {
             val state = generateGameMessageWithState(gameModel.generateNextState(), msgSeq.getAndIncrement())
             try {
                 sendState(state)
