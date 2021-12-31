@@ -1,5 +1,6 @@
 data class ServerDTO(
     val address: String,
+    val port: Int,
     val gameInfo: SnakesProto.GameMessage.AnnouncementMsg
 ) {
 

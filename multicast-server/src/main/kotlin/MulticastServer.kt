@@ -1,11 +1,4 @@
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.take
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import java.lang.Exception
 import java.net.DatagramPacket
 
@@ -20,23 +13,11 @@ class MulticastServer(
     port: Int
 ) : Loggable, MulticastObservable {
 
-    private val subscribers = mutableListOf<MulticastObserver>()
     private val multicastSocket = MulticastSocket(port)
     private val servers = mutableMapOf<DatagramPacket, AnnouncementMessage>()
+    private val subscribers = mutableListOf<MulticastObserver>()
 
     private var listenJob: Job? = null
-
-    fun getPortByHostAddress(hostAddress: String): Optional<Int> =
-        servers.keys.stream()
-            .filter { it.address.hostAddress == hostAddress }
-            .map { it.port }
-            .findFirst()
-
-    fun getAddressByHostAddress(hostAddress: String): Optional<InetAddress> =
-        servers.keys.stream()
-            .filter { it.address.hostAddress == hostAddress }
-            .map { it.address }
-            .findFirst()
 
     fun run() {
         listenJob = CoroutineScope(Dispatchers.IO).launch {
@@ -48,12 +29,11 @@ class MulticastServer(
         listenJob?.cancel()
     }
 
-    private fun listen() {
+    private suspend fun listen() = withContext(Dispatchers.IO) {
         multicastSocket.joinGroup(address)
         val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
         val message = DatagramPacket(buffer, DEFAULT_BUFFER_SIZE)
-        while (true) {
-            //todo delete AFK servers
+        while (isActive) {
             multicastSocket.receive(message)
             processMessage(message)
         }
@@ -67,13 +47,22 @@ class MulticastServer(
         }
         if (null == servers.putIfAbsent(message, gameMessage.announcement)) {
             logger.info("Multicast spotted new server with hostAddress ${message.address.hostAddress}")
-            subscribers.forEach { it.notify(ServerDTO(message.address.hostAddress, gameMessage.announcement)) }
+            subscribers.forEach {
+                it.notify(
+                    ServerDTO(
+                        message.address.hostAddress,
+                        message.port,
+                        gameMessage.announcement
+                    )
+                )
+            }
         }
     }
 
     private fun parseMessage(message: DatagramPacket): SnakesProto.GameMessage? {
         return try {
-            SnakesProto.GameMessage.parseFrom(message.data.inputStream())
+            val bytes = Arrays.copyOf(message.data, message.length)
+            SnakesProto.GameMessage.parseFrom(bytes)
         } catch (exc: Exception) {
             null
         }

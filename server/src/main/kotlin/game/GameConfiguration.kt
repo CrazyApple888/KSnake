@@ -13,10 +13,8 @@ object GameConfiguration : Loggable {
         "state_delay_ms" to 1000.0, //обновлять состояние каждый этот период
         "dead_food_prob" to 0.1,    //вероятность превращения змейки в еду
         "ping_delay_ms" to 100.0,   //если ничего не шлем в течение этого, то надо отправить пинг
-        "node_timeout_ms" to 800.0, //после этого таймаута клиент умер
+        "node_timeout_ms" to 80000.0, //после этого таймаута клиент умер
     )
-
-    fun getParameterByName(name: String): Double = config.getValue(name)
 
     fun buildConfig(): SnakesProto.GameConfig =
         SnakesProto.GameConfig.newBuilder()
@@ -37,7 +35,6 @@ object GameConfiguration : Loggable {
             for (name in properties.stringPropertyNames()) {
                 val value = properties.getProperty(name).toDouble()
                 config[name] = value
-                logger.info("Config parsed ${name to value}")
             }
         }
     }

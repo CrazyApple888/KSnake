@@ -2,10 +2,9 @@ package network
 
 import java.net.DatagramPacket
 import java.net.DatagramSocket
-import java.net.InetAddress
 
 class SocketEndPoint(
-    port: Int,
+    override val port: Int,
     timeout: Int
 ) : EndPoint {
 
@@ -19,7 +18,7 @@ class SocketEndPoint(
         socket.send(data)
     }
 
-    override fun receive() : DatagramPacket {
+    override fun receive(): DatagramPacket {
         val packet = DatagramPacket(ByteArray(DEFAULT_BUFFER_SIZE), DEFAULT_BUFFER_SIZE)
         socket.receive(packet)
 
@@ -29,4 +28,7 @@ class SocketEndPoint(
     override fun close() {
         socket.close()
     }
+
+    override fun newEndPoint(port: Int, timeout: Int): EndPoint =
+        SocketEndPoint(port, timeout)
 }
